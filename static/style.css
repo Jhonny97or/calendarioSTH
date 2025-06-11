@@ -10,9 +10,11 @@
 
 body{
   font-family:system-ui,Arial,sans-serif;
-  background:var(--bg) url('/static/bg.jpg') center/cover fixed no-repeat;
-  color:var(--grey);
+  background:
+    linear-gradient(135deg,#fff 0%,#fff 60%,rgba(245,130,32,.06) 100%);
+  color:#343434;
 }
+
 
 header{
   background:var(--grey);color:var(--white);

@@ -4,31 +4,43 @@ document.addEventListener("DOMContentLoaded", async () => {
   const calendarEl  = document.getElementById("calendar");
   const API = "/api";
 
-  /* Calendar */
+  /* =======================================================
+     FullCalendar
+  ======================================================= */
   const calendar = new FullCalendar.Calendar(calendarEl, {
     initialView: "dayGridMonth",
     locale: "es",
-    height: "auto"
+    height: "auto",
+    buttonText: {
+      today: "Hoy"
+    }
   });
   calendar.render();
 
-  /* Util fetch JSON con manejo de error */
+  /* =======================================================
+     Helper: fetch JSON con manejo de expiración de sesión
+  ======================================================= */
   async function fetchJson(url) {
     const res = await fetch(url);
     if (!res.ok) {
-      alert("Tu sesión expiró: vuelve a iniciar sesión.");
+      alert("Tu sesión expiró. Inicia sesión de nuevo.");
       window.location.href = "/login";
       return [];
     }
     return res.json();
   }
 
-  /* Cargar proveedores */
-  for (const p of await fetchJson(`${API}/providers`))
-    providerSel.add(new Option(p, p));
+  /* =======================================================
+     1) Poblar proveedores
+  ======================================================= */
+  const providers = await fetchJson(`${API}/providers`);
+  providers.forEach(p => providerSel.add(new Option(p, p)));
 
-  /* Cambio de proveedor */
+  /* =======================================================
+     2) Cambio de Proveedor
+  ======================================================= */
   providerSel.addEventListener("change", async e => {
+    // Reseteo país + calendario
     calendar.removeAllEvents();
     countrySel.innerHTML = '<option value="">— Elegir —</option>';
     countrySel.disabled = true;
@@ -36,17 +48,22 @@ document.addEventListener("DOMContentLoaded", async () => {
     const provider = e.target.value;
     if (!provider) return;
 
-    for (const c of await fetchJson(`${API}/countries?provider=${encodeURIComponent(provider)}`))
-      countrySel.add(new Option(c, c));
+    // Cargo países
+    const countries = await fetchJson(`${API}/countries?provider=${encodeURIComponent(provider)}`);
+    countries.forEach(c => countrySel.add(new Option(c, c)));
     countrySel.disabled = false;
   });
 
-  /* Cambio de país */
+  /* =======================================================
+     3) Cambio de País => Eventos
+  ======================================================= */
   countrySel.addEventListener("change", async e => {
     calendar.removeAllEvents();
-    const provider = providerSel.value,
-          country  = e.target.value;
+
+    const provider = providerSel.value;
+    const country  = e.target.value;
     if (!provider || !country) return;
+
     const evts = await fetchJson(`${API}/events?provider=${encodeURIComponent(provider)}&country=${encodeURIComponent(country)}`);
     calendar.addEventSource(evts);
   });

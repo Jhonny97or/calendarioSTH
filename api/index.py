@@ -115,10 +115,15 @@ def api_countries(provider: str, user: str = Depends(require_user)):
 @app.get("/api/events")
 def api_events(provider: str, country: str, user: str = Depends(require_user)):
     evts = [
-        {"title": f"Pedido · {provider}", "start": date_iso, "allDay": True}
-        for p, brand, country_evt, date_iso in EVENTS
-        if _eq(p, provider) and _eq(country_evt, country) and _eq(brand, user)
+        {
+            "title": f"{provider.upper()} – PEDIDO",
+            "start": date_iso,          # formato YYYY-MM-DD
+            "allDay": True,
+            "color": "#f58220"          # opcional: naranja corporativo
+        }
+        for prov, brand, ctry, date_iso in EVENTS
+        if prov == provider and ctry == country and brand == user
     ]
-    return no_cache(evts)
+    return JSONResponse(evts)
 
 

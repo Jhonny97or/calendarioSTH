@@ -1,29 +1,31 @@
-from fastapi import FastAPI, Request, Form, Response, HTTPException, Depends
+import os
+from datetime import datetime
+from fastapi import FastAPI, Request, Form, Depends, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from itsdangerous import Signer, BadSignature
-from datetime import datetime
 
+# ── App & FS ─────────────────────────────────────────────────────────────
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
+signer = Signer(os.environ["SESSION_SECRET"])
 
-# ---- simple “database” -----
-CREDENTIALS = {f"brand{i}": f"brand{i}" for i in range(1, 11)}  # brand1…brand10
+# ── “BD” de demo ─────────────────────────────────────────────────────────
+CREDENTIALS = {f"brand{i}": f"brand{i}" for i in range(1, 11)}
+
 EVENTS = [
-    # provider, brand, "YYYY-MM-DD"
-    ("Proveedor A", "brand1", "2025-06-18"),
-    ("Proveedor A", "brand2", "2025-07-22"),
-    ("Proveedor B", "brand3", "2025-06-30"),
-    ("Proveedor C", "brand1", "2025-08-05"),
-    ("Proveedor C", "brand4", "2025-06-25"),
-    # …añade más
+    # proveedor, marca, país, fecha ISO
+    ("Proveedor A", "brand1", "Colombia", "2025-07-04"),
+    ("Proveedor A", "brand1", "Panamá",   "2025-07-18"),
+    ("Proveedor A", "brand2", "Colombia", "2025-07-22"),
+    ("Proveedor B", "brand3", "Chile",    "2025-06-30"),
+    ("Proveedor C", "brand1", "México",   "2025-08-05"),
+    ("Proveedor C", "brand4", "Colombia", "2025-06-25"),
 ]
 
-# ---- cookie signer -----
-signer = Signer("🔐-hard-replace-me-with-env-secret")
-
+# ── Helpers ──────────────────────────────────────────────────────────────
 def get_user(request: Request):
     cookie = request.cookies.get("session")
     if not cookie:
@@ -39,41 +41,48 @@ def require_user(request: Request):
         raise HTTPException(status_code=303, headers={"Location": "/login"})
     return user
 
-# ---- routes -----
+# ── Auth ─────────────────────────────────────────────────────────────────
 @app.get("/login", response_class=HTMLResponse)
-async def login_get(request: Request):
+def login_get(request: Request):
     if get_user(request):
         return RedirectResponse("/", 303)
     return templates.TemplateResponse("login.html", {"request": request, "error": None})
 
 @app.post("/login", response_class=HTMLResponse)
-async def login_post(request: Request, username: str = Form(...), password: str = Form(...)):
+def login_post(request: Request, username: str = Form(...), password: str = Form(...)):
     if CREDENTIALS.get(username) != password:
         return templates.TemplateResponse("login.html", {"request": request, "error": "Credenciales incorrectas"})
     resp = RedirectResponse("/", 303)
-    resp.set_cookie("session", signer.sign(username.encode()).decode(), httponly=True, max_age=86400*30)
+    resp.set_cookie("session", signer.sign(username.encode()).decode(), httponly=True, max_age=60*60*24*30)
     return resp
 
 @app.get("/logout")
-async def logout():
+def logout():
     resp = RedirectResponse("/login", 303)
     resp.delete_cookie("session")
     return resp
 
+# ── UI principal ─────────────────────────────────────────────────────────
 @app.get("/", response_class=HTMLResponse)
-async def home(request: Request, user: str = Depends(require_user)):
+def home(request: Request, user: str = Depends(require_user)):
     return templates.TemplateResponse("calendar.html", {"request": request, "user": user})
 
+# ── APIs de datos ────────────────────────────────────────────────────────
+@app.get("/providers")
+def providers(user: str = Depends(require_user)):
+    provs = sorted({p for p, brand, *_ in EVENTS if brand == user})
+    return JSONResponse(provs)
+
+@app.get("/countries")
+def countries(provider: str, user: str = Depends(require_user)):
+    ctries = sorted({ctry for p, brand, ctry, *_ in EVENTS if p == provider and brand == user})
+    return JSONResponse(ctries)
+
 @app.get("/events")
-async def events(provider: str, user: str = Depends(require_user)):
-    """Return JSON events for the selected provider *and* for the logged-in brand only."""
-    provider_events = [
-        {
-            "title": f"Pedido • {p}",
-            "start": d,
-            "allDay": True
-        }
-        for p, brand, d in EVENTS
-        if p == provider and brand == user
+def events(provider: str, country: str, user: str = Depends(require_user)):
+    evts = [
+        {"title": f"Pedido – {provider}", "start": date, "allDay": True}
+        for p, brand, ctry, date in EVENTS
+        if p == provider and ctry == country and brand == user
     ]
-    return JSONResponse(provider_events)
+    return JSONResponse(evts)

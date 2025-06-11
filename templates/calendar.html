@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Calendario de pedidos</title>
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
+  <link href="/static/style.css" rel="stylesheet">
+</head>
+<body>
+  <header>
+    <h2>Calendario de pedidos – {{ user }}</h2>
+    <a href="/logout">Cerrar sesión</a>
+  </header>
+
+  <section>
+    <label>Proveedor:
+      <select id="provider-select">
+        <option value="">— Elegir —</option>
+        <option>Proveedor A</option>
+        <option>Proveedor B</option>
+        <option>Proveedor C</option>
+      </select>
+    </label>
+  </section>
+
+  <div id="calendar"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+  <script src="/static/script.js"></script>
+</body>
+</html>

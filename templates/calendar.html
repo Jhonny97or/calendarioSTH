@@ -2,23 +2,31 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <title>Calendario de pedidos</title>
+  <title>Saint Honoré · Calendario</title>
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
   <link href="/static/style.css" rel="stylesheet">
 </head>
 <body>
   <header>
-    <h2>Calendario de pedidos – {{ user }}</h2>
-    <a href="/logout">Cerrar sesión</a>
+    <div class="logo-wrap">
+      <img src="/static/logo.png" alt="Saint Honoré">
+      <span>Demand&nbsp;Planning</span>
+    </div>
+    <div>
+      <strong>{{ user }}</strong>
+      · <a href="/logout">Salir</a>
+    </div>
   </header>
 
-  <section>
+  <section class="filters">
     <label>Proveedor:
       <select id="provider-select">
         <option value="">— Elegir —</option>
-        <option>Proveedor A</option>
-        <option>Proveedor B</option>
-        <option>Proveedor C</option>
+      </select>
+    </label>
+    <label>País:
+      <select id="country-select" disabled>
+        <option value="">— Elegir —</option>
       </select>
     </label>
   </section>
@@ -29,3 +37,4 @@
   <script src="/static/script.js"></script>
 </body>
 </html>
+

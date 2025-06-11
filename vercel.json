@@ -1,9 +1,9 @@
-// vercel.json  —  versión simplificada y correcta
+
 {
   "builds": [
     { "src": "api/index.py", "use": "@vercel/python", "config": { "runtime": "python3.11" } }
   ],
   "routes": [
-    { "src": "/(.*)", "dest": "api/index.py" }    // catch-all, conserva la ruta entera
+    { "src": "/(.*)", "dest": "api/index.py" }  
   ]
 }

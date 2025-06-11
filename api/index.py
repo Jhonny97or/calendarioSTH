@@ -1,8 +1,3 @@
-"""
-Saint Honoré · Demand Planning  ·  FastAPI
-Ruta: calendarioSTH/api/index.py
-"""
-
 import os
 from fastapi import FastAPI, Request, Form, Depends, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
@@ -10,72 +5,56 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from itsdangerous import Signer, BadSignature
 
-# ───────────────────────────────────────────
-# Config básica
-# ───────────────────────────────────────────
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
+signer = Signer(os.environ["SESSION_SECRET"])
 
-signer = Signer(os.getenv("SESSION_SECRET", "DEMO_SECRET"))
-
-# ───────────────────────────────────────────
-# Datos DEMO
-#  (Proveedor, Brand,  País,       Fecha ISO)
-# ───────────────────────────────────────────
-EVENTS = [
-    ("Proveedor1", "brand1", "Colombia", "2025-08-06"),
-    ("Proveedor1", "brand1", "Panamá",   "2025-08-20"),
-    ("Proveedor2", "brand1", "Chile",    "2025-09-01"),
-    ("Proveedor2", "brand2", "Colombia", "2025-09-10"),
-]
-
+# ── Credenciales demo ────────────────────────────────────────────────────
 CREDENTIALS = {f"brand{i}": f"brand{i}" for i in range(1, 11)}
 
-# ───────────────────────────────────────────
-# Helpers
-# ───────────────────────────────────────────
-def _eq(a: str, b: str) -> bool:
-    return a.strip().lower() == b.strip().lower()
+# ── Datos demo (proveedor, país, marca, usuario, fecha ISO) ──────────────
+EVENTS = [
+    ("Proveedor1", "Panamá",  "CHANEL",   "brand1", "2025-07-20"),
+    ("Proveedor1", "Colombia","CHANEL",   "brand1", "2025-07-04"),
+    ("Proveedor1", "Panamá",  "DIOR",     "brand1", "2025-08-18"),
+    ("Proveedor2", "Chile",   "GUCCI",    "brand3", "2025-06-30"),
+    ("Proveedor2", "Panamá",  "LACOSTE",  "brand3", "2025-09-10"),
+]
 
-def get_user(req: Request):
-    cookie = req.cookies.get("session")
-    if not cookie:
+# ── Helpers de sesión ───────────────────────────────────────────────────
+def _get_user(request: Request):
+    token = request.cookies.get("session")
+    if not token:
         return None
     try:
-        return signer.unsign(cookie).decode()
+        return signer.unsign(token).decode()
     except BadSignature:
         return None
 
-def require_user(req: Request):
-    user = get_user(req)
+def _require_user(request: Request):
+    user = _get_user(request)
     if not user:
         raise HTTPException(status_code=303, headers={"Location": "/login"})
     return user
 
-def no_cache(payload):
-    """Devuelve JSONResponse sin caché."""
-    return JSONResponse(payload, headers={"Cache-Control": "no-store"})
-
-# ───────────────────────────────────────────
-# Auth
-# ───────────────────────────────────────────
+# ── Auth ────────────────────────────────────────────────────────────────
 @app.get("/login", response_class=HTMLResponse)
-def login_get(req: Request):
-    if get_user(req):
+def login_get(request: Request):
+    if _get_user(request):
         return RedirectResponse("/", 303)
-    return templates.TemplateResponse("login.html", {"request": req, "error": None})
+    return templates.TemplateResponse("login.html", {"request": request, "error": None})
 
 @app.post("/login", response_class=HTMLResponse)
-def login_post(req: Request, username: str = Form(...), password: str = Form(...)):
+def login_post(request: Request, username: str = Form(...), password: str = Form(...)):
     if CREDENTIALS.get(username) != password:
-        return templates.TemplateResponse("login.html", {"request": req, "error": "Credenciales incorrectas"})
+        return templates.TemplateResponse("login.html", {"request": request, "error": "Credenciales incorrectas"})
     resp = RedirectResponse("/", 303)
     resp.set_cookie(
         "session",
         signer.sign(username.encode()).decode(),
         httponly=True,
-        max_age=60 * 60 * 24 * 30,
+        max_age=60*60*24*30,
         path="/",
         samesite="lax"
     )
@@ -83,47 +62,38 @@ def login_post(req: Request, username: str = Form(...), password: str = Form(...
 
 @app.get("/logout")
 def logout():
-    resp = RedirectResponse("/login", 303)
-    resp.delete_cookie("session", path="/")
-    return resp
+    r = RedirectResponse("/login", 303)
+    r.delete_cookie("session", path="/")
+    return r
 
-# ───────────────────────────────────────────
-# Páginas
-# ───────────────────────────────────────────
+# ── Página principal ────────────────────────────────────────────────────
 @app.get("/", response_class=HTMLResponse)
-def home(req: Request, user: str = Depends(require_user)):
-    return templates.TemplateResponse("calendar.html", {"request": req, "user": user})
+def home(request: Request, user: str = Depends(_require_user)):
+    return templates.TemplateResponse("calendar.html", {"request": request, "user": user})
 
-# ───────────────────────────────────────────
-# API JSON
-# ───────────────────────────────────────────
+# ── API JSON ────────────────────────────────────────────────────────────
 @app.get("/api/providers")
-def api_providers(user: str = Depends(require_user)):
-    provs = sorted({p for p, brand, *_ in EVENTS if _eq(brand, user)})
-    # Log rápido en Vercel para depurar
-    print(f"[providers] user={user} → {provs}")
-    return no_cache(provs)
+def api_providers(user: str = Depends(_require_user)):
+    provs = {p for p, _, _, u, _ in EVENTS if u == user}
+    return JSONResponse(sorted(provs))
 
 @app.get("/api/countries")
-def api_countries(provider: str, user: str = Depends(require_user)):
-    ctries = sorted({
-        country for p, brand, country, _ in EVENTS
-        if _eq(p, provider) and _eq(brand, user)
-    })
-    return no_cache(ctries)
+def api_countries(provider: str, user: str = Depends(_require_user)):
+    ctries = {c for p, c, _, u, _ in EVENTS if p == provider and u == user}
+    return JSONResponse(sorted(ctries))
 
 @app.get("/api/events")
-def api_events(provider: str, country: str, user: str = Depends(require_user)):
-    evts = [
+def api_events(provider: str, country: str, user: str = Depends(_require_user)):
+    datos = [
         {
-            "title": f"{provider.upper()} – PEDIDO",
-            "start": date_iso,          # formato YYYY-MM-DD
+            "title": f"{brand} – PEDIDO",
+            "start": fecha_iso,
             "allDay": True,
-            "color": "#f58220"          # opcional: naranja corporativo
+            "backgroundColor": "#f58220",
+            "borderColor": "#f58220"
         }
-        for prov, brand, ctry, date_iso in EVENTS
-        if prov == provider and ctry == country and brand == user
+        for p, c, brand, u, fecha_iso in EVENTS
+        if (p, c, u) == (provider, country, user)
     ]
-    return JSONResponse(evts)
-
+    return JSONResponse(datos)
 

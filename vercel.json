@@ -1,0 +1,11 @@
+{
+  "runtime": "python3.11",
+  "builds": [
+    { "src": "api/index.py", "use": "@vercel/python" }
+  ],
+  "routes": [
+    { "src": "/static/(.*)",  "dest": "/static/$1" },
+    { "src": "/api/(.*)",     "dest": "/api/index.py" },
+    { "src": "/(.*)",         "dest": "/api/index.py" }
+  ]
+}

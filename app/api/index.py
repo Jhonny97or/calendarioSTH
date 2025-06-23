@@ -10,12 +10,12 @@ import pandas as pd
 from datetime import date
 from functools import lru_cache
 
-# ── Directorios base ──────────────────────────────────────────────────────
-# ( __file__ apunta a .../app/api/index.py )
+# ── Rutas base ─────────────────────────────────────────────────────────────
+# __file__ apunta a .../app/api/index.py
 BASE_DIR      = Path(__file__).resolve().parent.parent   # .../app
 STATIC_DIR    = BASE_DIR / "static"
 TEMPLATES_DIR = BASE_DIR / "templates"
-EXCEL_PATH    = STATIC_DIR / "deadlines.xlsx"            # ¡Ahí está tu Excel!
+EXCEL_PATH    = BASE_DIR / "deadlines.xlsx"              # ahora en /app/deadlines.xlsx
 
 # ── App y mounts ─────────────────────────────────────────────────────────
 app = FastAPI()
@@ -44,25 +44,31 @@ def _require_user(request: Request):
 
 # ── Leer deadlines.xlsx ───────────────────────────────────────────────────
 SPANISH_MONTHS = {
-    'ene':1,'feb':2,'mar':3,'abr':4,'may':5,'jun':6,
-    'jul':7,'ago':8,'sep':9,'oct':10,'nov':11,'dic':12
+    'ene':  1, 'feb':  2, 'mar':  3, 'abr':  4,
+    'may':  5, 'jun':  6, 'jul':  7, 'ago':  8,
+    'sep':  9, 'oct': 10, 'nov': 11, 'dic': 12,
 }
 
 def parse_spanish_date(s: str) -> str:
-    d, m, yy = s.split('-')
-    return date(2000 + int(yy), SPANISH_MONTHS[m.lower()], int(d)).isoformat()
+    """
+    Convierte '30-ene-25' en '2025-01-30'.
+    """
+    day, mon_abbr, yy = s.split('-')
+    year = 2000 + int(yy)
+    month = SPANISH_MONTHS[mon_abbr.lower()]
+    return date(year, month, int(day)).isoformat()
 
 @lru_cache(maxsize=1)
 def load_events_from_excel():
     df = pd.read_excel(str(EXCEL_PATH), engine="openpyxl")
     events = []
-    for _, r in df.iterrows():
+    for _, row in df.iterrows():
         events.append({
-            "proveedor": r.get("PROVEEDOR", "Proveedor1"),
-            "pais":      r["PAIS"],
-            "marca":     r["MARCA"],
-            "user":      r.get("USER", "brand1"),
-            "fecha_iso": parse_spanish_date(r["DEADLINE PROVEEDOR"])
+            "proveedor": row.get("PROVEEDOR", "Proveedor1"),
+            "pais":      row["PAIS"],
+            "marca":     row["MARCA"],
+            "user":      row.get("USER", "brand1"),
+            "fecha_iso": parse_spanish_date(row["DEADLINE PROVEEDOR"])
         })
     return events
 
@@ -76,7 +82,10 @@ def login_get(request: Request):
 @app.post("/login", response_class=HTMLResponse)
 def login_post(request: Request, username: str = Form(...), password: str = Form(...)):
     if CREDENTIALS.get(username) != password:
-        return templates.TemplateResponse("login.html", {"request": request, "error": "Credenciales incorrectas"})
+        return templates.TemplateResponse("login.html", {
+            "request": request,
+            "error": "Credenciales incorrectas"
+        })
     resp = RedirectResponse("/", 303)
     resp.set_cookie(
         "session",
@@ -97,12 +106,19 @@ def logout():
 # ── Página principal ────────────────────────────────────────────────────
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request, user: str = Depends(_require_user)):
-    return templates.TemplateResponse("calendar.html", {"request": request, "user": user})
+    return templates.TemplateResponse("calendar.html", {
+        "request": request,
+        "user": user
+    })
 
 # ── API JSON ──────────────────────────────────────────────────────────────
 @app.get("/api/providers")
 def api_providers(user: str = Depends(_require_user)):
-    provs = {ev["proveedor"] for ev in load_events_from_excel() if ev["user"] == user}
+    provs = {
+        ev["proveedor"]
+        for ev in load_events_from_excel()
+        if ev["user"] == user
+    }
     return JSONResponse(sorted(provs))
 
 @app.get("/api/countries")
@@ -127,3 +143,4 @@ def api_events(provider: str, country: str, user: str = Depends(_require_user)):
                 "borderColor":     "#f58220"
             })
     return JSONResponse(datos)
+

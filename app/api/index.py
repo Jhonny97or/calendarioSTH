@@ -36,32 +36,36 @@ def _require_user(request: Request):
 
 # ── Funciones para leer el Excel de deadlines ─────────────────────────────
 SPANISH_MONTHS = {
-    'ene': 1, 'feb': 2, 'mar': 3, 'abr': 4,
-    'may': 5, 'jun': 6, 'jul': 7, 'ago': 8,
-    'sep': 9, 'oct': 10,'nov': 11,'dic': 12
+    'ene':  1, 'feb':  2, 'mar':  3, 'abr':  4,
+    'may':  5, 'jun':  6, 'jul':  7, 'ago':  8,
+    'sep':  9, 'oct': 10, 'nov': 11, 'dic': 12,
 }
 
 def parse_spanish_date(s: str) -> str:
     """
-    Convierte una cadena tipo '30-ene-25' en '2025-01-30'.
+    Convierte '30-ene-25' en '2025-01-30'.
     """
     d, m, yy = s.split('-')
     return date(2000 + int(yy), SPANISH_MONTHS[m.lower()], int(d)).isoformat()
 
 @lru_cache(maxsize=1)
-def load_events_from_excel(path: str = "data/deadlines.xlsx"):
+def load_events_from_excel():
     """
-    Lee el Excel y devuelve una lista de dicts:
-      { proveedor, pais, marca, user, fecha_iso }
+    Lee deadlines.xlsx desde la carpeta /app (un nivel arriba de /api)
+    y devuelve lista de dicts con keys:
+      proveedor, pais, marca, user, fecha_iso
     """
+    base_dir = os.path.dirname(os.path.dirname(__file__))  # carpeta /app
+    path = os.path.join(base_dir, "deadlines.xlsx")
     df = pd.read_excel(path, engine="openpyxl")
+
     events = []
     for _, row in df.iterrows():
         events.append({
-            "proveedor": "Proveedor1",             # Cambia si agregas columna PROVEEDOR
+            "proveedor": row.get("PROVEEDOR", "Proveedor1"),      # si agregas columna PROVEEDOR
             "pais":      row["PAIS"],
             "marca":     row["MARCA"],
-            "user":      "brand1",                 # Cambia si agregas columna USER
+            "user":      row.get("USER", "brand1"),               # si agregas columna USER
             "fecha_iso": parse_spanish_date(row["DEADLINE PROVEEDOR"])
         })
     return events
@@ -74,7 +78,11 @@ def login_get(request: Request):
     return templates.TemplateResponse("login.html", {"request": request, "error": None})
 
 @app.post("/login", response_class=HTMLResponse)
-def login_post(request: Request, username: str = Form(...), password: str = Form(...)):
+def login_post(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...)
+):
     if CREDENTIALS.get(username) != password:
         return templates.TemplateResponse("login.html", {"request": request, "error": "Credenciales incorrectas"})
     resp = RedirectResponse("/", 303)
@@ -90,9 +98,9 @@ def login_post(request: Request, username: str = Form(...), password: str = Form
 
 @app.get("/logout")
 def logout():
-    response = RedirectResponse("/login", 303)
-    response.delete_cookie("session", path="/")
-    return response
+    resp = RedirectResponse("/login", 303)
+    resp.delete_cookie("session", path="/")
+    return resp
 
 # ── Página principal ────────────────────────────────────────────────────
 @app.get("/", response_class=HTMLResponse)
@@ -103,17 +111,21 @@ def home(request: Request, user: str = Depends(_require_user)):
 @app.get("/api/providers")
 def api_providers(user: str = Depends(_require_user)):
     events = load_events_from_excel()
-    provs = { ev["proveedor"] for ev in events if ev["user"] == user }
+    provs = {ev["proveedor"] for ev in events if ev["user"] == user}
     return JSONResponse(sorted(provs))
 
 @app.get("/api/countries")
 def api_countries(provider: str, user: str = Depends(_require_user)):
     events = load_events_from_excel()
-    ctries = { ev["pais"] for ev in events if ev["proveedor"] == provider and ev["user"] == user }
+    ctries = {ev["pais"] for ev in events if ev["proveedor"] == provider and ev["user"] == user}
     return JSONResponse(sorted(ctries))
 
 @app.get("/api/events")
-def api_events(provider: str, country: str, user: str = Depends(_require_user)):
+def api_events(
+    provider: str,
+    country: str,
+    user: str = Depends(_require_user)
+):
     events = load_events_from_excel()
     datos = []
     for ev in events:

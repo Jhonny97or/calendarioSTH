@@ -5,6 +5,11 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from itsdangerous import Signer, BadSignature
 
+import pandas as pd
+from datetime import date
+from functools import lru_cache
+
+# ── App y templates ────────────────────────────────────────────────────────
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
@@ -13,16 +18,7 @@ signer = Signer(os.environ["SESSION_SECRET"])
 # ── Credenciales demo ────────────────────────────────────────────────────
 CREDENTIALS = {f"brand{i}": f"brand{i}" for i in range(1, 11)}
 
-# ── Datos demo (proveedor, país, marca, usuario, fecha ISO) ──────────────
-EVENTS = [
-    ("Proveedor1", "Panamá",  "CHANEL",   "brand1", "2025-07-20"),
-    ("Proveedor1", "Colombia","CHANEL",   "brand1", "2025-07-04"),
-    ("Proveedor1", "Panamá",  "DIOR",     "brand1", "2025-08-18"),
-    ("Proveedor2", "Chile",   "GUCCI",    "brand3", "2025-06-30"),
-    ("Proveedor2", "Panamá",  "LACOSTE",  "brand3", "2025-09-10"),
-]
-
-# ── Helpers de sesión ───────────────────────────────────────────────────
+# ── Helpers de sesión ────────────────────────────────────────────────────
 def _get_user(request: Request):
     token = request.cookies.get("session")
     if not token:
@@ -38,7 +34,39 @@ def _require_user(request: Request):
         raise HTTPException(status_code=303, headers={"Location": "/login"})
     return user
 
-# ── Auth ────────────────────────────────────────────────────────────────
+# ── Funciones para leer el Excel de deadlines ─────────────────────────────
+SPANISH_MONTHS = {
+    'ene': 1, 'feb': 2, 'mar': 3, 'abr': 4,
+    'may': 5, 'jun': 6, 'jul': 7, 'ago': 8,
+    'sep': 9, 'oct': 10,'nov': 11,'dic': 12
+}
+
+def parse_spanish_date(s: str) -> str:
+    """
+    Convierte una cadena tipo '30-ene-25' en '2025-01-30'.
+    """
+    d, m, yy = s.split('-')
+    return date(2000 + int(yy), SPANISH_MONTHS[m.lower()], int(d)).isoformat()
+
+@lru_cache(maxsize=1)
+def load_events_from_excel(path: str = "data/deadlines.xlsx"):
+    """
+    Lee el Excel y devuelve una lista de dicts:
+      { proveedor, pais, marca, user, fecha_iso }
+    """
+    df = pd.read_excel(path, engine="openpyxl")
+    events = []
+    for _, row in df.iterrows():
+        events.append({
+            "proveedor": "Proveedor1",             # Cambia si agregas columna PROVEEDOR
+            "pais":      row["PAIS"],
+            "marca":     row["MARCA"],
+            "user":      "brand1",                 # Cambia si agregas columna USER
+            "fecha_iso": parse_spanish_date(row["DEADLINE PROVEEDOR"])
+        })
+    return events
+
+# ── Rutas de autenticación ────────────────────────────────────────────────
 @app.get("/login", response_class=HTMLResponse)
 def login_get(request: Request):
     if _get_user(request):
@@ -62,37 +90,40 @@ def login_post(request: Request, username: str = Form(...), password: str = Form
 
 @app.get("/logout")
 def logout():
-    r = RedirectResponse("/login", 303)
-    r.delete_cookie("session", path="/")
-    return r
+    response = RedirectResponse("/login", 303)
+    response.delete_cookie("session", path="/")
+    return response
 
 # ── Página principal ────────────────────────────────────────────────────
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request, user: str = Depends(_require_user)):
     return templates.TemplateResponse("calendar.html", {"request": request, "user": user})
 
-# ── API JSON ────────────────────────────────────────────────────────────
+# ── API JSON ──────────────────────────────────────────────────────────────
 @app.get("/api/providers")
 def api_providers(user: str = Depends(_require_user)):
-    provs = {p for p, _, _, u, _ in EVENTS if u == user}
+    events = load_events_from_excel()
+    provs = { ev["proveedor"] for ev in events if ev["user"] == user }
     return JSONResponse(sorted(provs))
 
 @app.get("/api/countries")
 def api_countries(provider: str, user: str = Depends(_require_user)):
-    ctries = {c for p, c, _, u, _ in EVENTS if p == provider and u == user}
+    events = load_events_from_excel()
+    ctries = { ev["pais"] for ev in events if ev["proveedor"] == provider and ev["user"] == user }
     return JSONResponse(sorted(ctries))
 
 @app.get("/api/events")
 def api_events(provider: str, country: str, user: str = Depends(_require_user)):
-    datos = [
-        {
-            "title": f"{brand} – PEDIDO",
-            "start": fecha_iso,
-            "allDay": True,
-            "backgroundColor": "#f58220",
-            "borderColor": "#f58220"
-        }
-        for p, c, brand, u, fecha_iso in EVENTS
-        if (p, c, u) == (provider, country, user)
-    ]
+    events = load_events_from_excel()
+    datos = []
+    for ev in events:
+        if (ev["proveedor"], ev["pais"], ev["user"]) == (provider, country, user):
+            datos.append({
+                "title":           f"{ev['marca']} – PEDIDO",
+                "start":           ev["fecha_iso"],
+                "allDay":          True,
+                "backgroundColor": "#f58220",
+                "borderColor":     "#f58220"
+            })
     return JSONResponse(datos)
+

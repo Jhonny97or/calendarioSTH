@@ -8,41 +8,23 @@ from itsdangerous import Signer, BadSignature
 
 from datetime import date
 from functools import lru_cache
-import traceback
 
-# ── Directorios base ───────────────────────────────────────────────────────
-BASE_DIR      = Path(__file__).resolve().parent.parent   # …/app
-STATIC_DIR    = BASE_DIR / "static"
-TEMPLATES_DIR = BASE_DIR / "templates"
+# ── Ajuste de rutas base ───────────────────────────────────────────────────
+# __file__ apunta a .../app/api/index.py
+REPO_ROOT     = Path(__file__).resolve().parent.parent.parent  # …/ (var/task)
+STATIC_DIR    = REPO_ROOT / "static"
+TEMPLATES_DIR = REPO_ROOT / "templates"
 
-# ── Crea la app y monta estáticos y plantillas ─────────────────────────────
+# ── App y mounts ─────────────────────────────────────────────────────────
 app = FastAPI()
-
-# 2) Middleware que captura cualquier excepción y la imprime en JSON
-@app.middleware("http")
-async def catch_exceptions_middleware(request: Request, call_next):
-    try:
-        return await call_next(request)
-    except Exception as e:
-        tb = traceback.format_exc()
-        return JSONResponse(
-            {"error": str(e), "traceback": tb},
-            status_code=500
-        )
-
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 signer = Signer(os.environ.get("SESSION_SECRET", "dev-secret"))
 
-# ── Endpoint de prueba ─────────────────────────────────────────────────────
-@app.get("/ping")
-def ping():
-    return {"ping": "pong"}
-
-# ── Credenciales demo ──────────────────────────────────────────────────────
+# ── Credenciales demo ─────────────────────────────────────────────────────
 CREDENTIALS = {f"brand{i}": f"brand{i}" for i in range(1, 11)}
 
-# ── Datos “hardcodeados” ────────────────────────────────────────────────────
+# ── Datos manuales (Marca, País, Fecha) ────────────────────────────────────
 RAW_EVENTS = [
     ("CHANEL",     "COLOMBIA",    "30-ene-25"),
     ("CHANEL",     "COLOMBIA",    "28-feb-25"),
@@ -64,8 +46,8 @@ RAW_EVENTS = [
     ("CHANEL",     "COSTA RICA",  "06-sep-25"),
     ("CHANEL",     "COSTA RICA",  "05-oct-25"),
     ("CHANEL",     "COSTA RICA",  "07-nov-25"),
-    ("CLARINS",    "COLOMBIA",    ""),            # sin fecha
-    ("CLARINS",    "COLOMBIA",    ""),            # sin fecha
+    ("CLARINS",    "COLOMBIA",    ""),             # sin fecha
+    ("CLARINS",    "COLOMBIA",    ""),             # sin fecha
     ("CLARINS",    "COLOMBIA",    "15-mar-25"),
     ("CLARINS",    "COLOMBIA",    "15-abr-25"),
     ("CLARINS",    "COLOMBIA",    "15-may-25"),
@@ -74,8 +56,8 @@ RAW_EVENTS = [
     ("CLARINS",    "COLOMBIA",    "15-ago-25"),
     ("CLARINS",    "COLOMBIA",    "15-sep-25"),
     ("CLARINS",    "COLOMBIA",    "15-oct-25"),
-    ("CLARINS",    "COSTA RICA",  ""),            # sin fecha
-    ("CLARINS",    "COSTA RICA",  ""),            # sin fecha
+    ("CLARINS",    "COSTA RICA",  ""),             # sin fecha
+    ("CLARINS",    "COSTA RICA",  ""),             # sin fecha
     ("CLARINS",    "COSTA RICA",  "15-mar-25"),
     ("CLARINS",    "COSTA RICA",  "15-abr-25"),
     ("CLARINS",    "COSTA RICA",  "15-may-25"),
@@ -85,7 +67,7 @@ RAW_EVENTS = [
     ("CLARINS",    "COSTA RICA",  "15-sep-25"),
     ("CLARINS",    "COSTA RICA",  "15-oct-25"),
     ("JA",         "COLOMBIA",    "16-feb-25"),
-    ("JA",         "COLOMBIA",    ""),            # sin fecha
+    ("JA",         "COLOMBIA",    ""),             # sin fecha
     ("JA",         "COLOMBIA",    "15-abr-25"),
     ("JA",         "COLOMBIA",    "15-may-25"),
     ("JA",         "COLOMBIA",    "15-jun-25"),
@@ -95,7 +77,7 @@ RAW_EVENTS = [
     ("JA",         "COLOMBIA",    "15-oct-25"),
     ("JA",         "COLOMBIA",    "15-nov-25"),
     ("JA / SKILL", "COSTA RICA",  "05-feb-25"),
-    ("JA / SKILL", "COSTA RICA",  ""),            # sin fecha
+    ("JA / SKILL", "COSTA RICA",  ""),             # sin fecha
     ("JA / SKILL", "COSTA RICA",  "15-abr-25"),
     ("JA / SKILL", "COSTA RICA",  "15-may-25"),
     ("JA / SKILL", "COSTA RICA",  "15-jun-25"),
@@ -114,8 +96,8 @@ RAW_EVENTS = [
     ("CHANEL",     "DFA/ NORA / IMAS", "10-sep-25"),
     ("CHANEL",     "DFA/ NORA / IMAS", "10-oct-25"),
     ("CHANEL",     "DFA/ NORA / IMAS", "31-oct-25"),
-    ("HÉRMES",     "COSTA RICA",  ""),            # sin fecha
-    ("HÉRMES",     "COSTA RICA",  ""),            # sin fecha
+    ("HÉRMES",     "COSTA RICA",  ""),             # sin fecha
+    ("HÉRMES",     "COSTA RICA",  ""),             # sin fecha
     ("HÉRMES",     "COSTA RICA",  "31-mar-25"),
     ("HÉRMES",     "COSTA RICA",  "30-abr-25"),
     ("HÉRMES",     "COSTA RICA",  "30-may-25"),
@@ -124,16 +106,16 @@ RAW_EVENTS = [
     ("HÉRMES",     "COSTA RICA",  "31-ago-25"),
     ("HÉRMES",     "COSTA RICA",  "31-oct-25"),
     ("HÉRMES",     "COSTA RICA",  "30-nov-25"),
-    ("HÉRMES",     "DFA/ NORA / IMAS", ""),      # sin fecha
-    ("HÉRMES",     "DFA/ NORA / IMAS", ""),      # sin fecha
-    ("HÉRMES",     "DFA/ NORA / IMAS", "31-mar-25"),
-    ("HÉRMES",     "DFA/ NORA / IMAS", "30-abr-25"),
-    ("HÉRMES",     "DFA/ NORA / IMAS", "30-may-25"),
-    ("HÉRMES",     "DFA/ NORA / IMAS", "30-jun-25"),
-    ("HÉRMES",     "DFA/ NORA / IMAS", "31-jul-25"),
-    ("HÉRMES",     "DFA/ NORA / IMAS", "31-ago-25"),
-    ("HÉRMES",     "DFA/ NORA / IMAS", "31-oct-25"),
-    ("HÉRMES",     "DFA/ NORA / IMAS", "30-nov-25"),
+    ("HÉRMES",     "DFA/ NORA / IMAS",""),        # sin fecha
+    ("HÉRMES",     "DFA/ NORA / IMAS",""),        # sin fecha
+    ("HÉRMES",     "DFA/ NORA / IMAS","31-mar-25"),
+    ("HÉRMES",     "DFA/ NORA / IMAS","30-abr-25"),
+    ("HÉRMES",     "DFA/ NORA / IMAS","30-may-25"),
+    ("HÉRMES",     "DFA/ NORA / IMAS","30-jun-25"),
+    ("HÉRMES",     "DFA/ NORA / IMAS","31-jul-25"),
+    ("HÉRMES",     "DFA/ NORA / IMAS","31-ago-25"),
+    ("HÉRMES",     "DFA/ NORA / IMAS","31-oct-25"),
+    ("HÉRMES",     "DFA/ NORA / IMAS","30-nov-25"),
     ("PUPA",       "COSTA RICA",  "15-jun-25"),
     ("PUPA",       "COSTA RICA",  "15-sep-25"),
     ("CARTIER",    "COSTA RICA",  "15-may-25"),
@@ -141,6 +123,7 @@ RAW_EVENTS = [
     ("ICONIC",     "COSTA RICA",  "15-jun-25"),
 ]
 
+# ── Parsing de fechas españolas ─────────────────────────────────────────────
 SPANISH_MONTHS = {
     'ene':1,'feb':2,'mar':3,'abr':4,
     'may':5,'jun':6,'jul':7,'ago':8,
@@ -151,20 +134,21 @@ def parse_spanish_date(s: str) -> str:
     d, m, yy = s.split('-')
     return date(2000 + int(yy), SPANISH_MONTHS[m.lower()], int(d)).isoformat()
 
+# ── Carga cacheada de eventos ───────────────────────────────────────────────
 @lru_cache(maxsize=1)
 def load_events_manual():
-    events = []
+    evs = []
     for marca, pais, fecha_str in RAW_EVENTS:
         if not fecha_str:
             continue
-        events.append({
+        evs.append({
             "proveedor": "Proveedor1",
             "pais":      pais,
             "marca":     marca,
             "user":      "brand1",
             "fecha_iso": parse_spanish_date(fecha_str)
         })
-    return events
+    return evs
 
 # ── Sesión / Auth ─────────────────────────────────────────────────────────
 def _get_user(request: Request):
@@ -182,6 +166,7 @@ def _require_user(request: Request):
         raise HTTPException(status_code=303, headers={"Location": "/login"})
     return user
 
+# ── Rutas de autenticación ────────────────────────────────────────────────
 @app.get("/login", response_class=HTMLResponse)
 def login_get(request: Request):
     if _get_user(request):
@@ -206,12 +191,14 @@ def logout():
     r.delete_cookie("session", path="/")
     return r
 
+# ── Página principal ───────────────────────────────────────────────────────
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request, user: str = Depends(_require_user)):
     return templates.TemplateResponse("calendar.html", {
         "request": request, "user": user
     })
 
+# ── API JSON ───────────────────────────────────────────────────────────────
 @app.get("/api/providers")
 def api_providers(user: str = Depends(_require_user)):
     provs = { ev["proveedor"] for ev in load_events_manual() if ev["user"] == user }

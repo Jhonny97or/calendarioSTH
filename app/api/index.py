@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from fastapi import FastAPI, Request, Form, Depends, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -9,16 +10,23 @@ import pandas as pd
 from datetime import date
 from functools import lru_cache
 
-# ── App y templates ────────────────────────────────────────────────────────
+# ── Calcula rutas absolu tas ──────────────────────────────────────────────
+# __file__ = .../app/api/index.py
+BASE_DIR     = Path(__file__).resolve().parent.parent   # .../app
+STATIC_DIR   = BASE_DIR / "static"
+TEMPLATES_DIR= BASE_DIR / "templates"
+EXCEL_PATH   = BASE_DIR / "deadlines.xlsx"
+
+# ── App y mounts ─────────────────────────────────────────────────────────
 app = FastAPI()
-app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 signer = Signer(os.environ["SESSION_SECRET"])
 
 # ── Credenciales demo ────────────────────────────────────────────────────
 CREDENTIALS = {f"brand{i}": f"brand{i}" for i in range(1, 11)}
 
-# ── Helpers de sesión ────────────────────────────────────────────────────
+# ── Sesión / Auth … (idéntico al tuyo) ────────────────────────────────────
 def _get_user(request: Request):
     token = request.cookies.get("session")
     if not token:
@@ -34,43 +42,30 @@ def _require_user(request: Request):
         raise HTTPException(status_code=303, headers={"Location": "/login"})
     return user
 
-# ── Funciones para leer el Excel de deadlines ─────────────────────────────
+# ── Funciones para leer el Excel ───────────────────────────────────────────
 SPANISH_MONTHS = {
-    'ene':  1, 'feb':  2, 'mar':  3, 'abr':  4,
-    'may':  5, 'jun':  6, 'jul':  7, 'ago':  8,
-    'sep':  9, 'oct': 10, 'nov': 11, 'dic': 12,
+    'ene':1,'feb':2,'mar':3,'abr':4,'may':5,'jun':6,
+    'jul':7,'ago':8,'sep':9,'oct':10,'nov':11,'dic':12
 }
-
 def parse_spanish_date(s: str) -> str:
-    """
-    Convierte '30-ene-25' en '2025-01-30'.
-    """
     d, m, yy = s.split('-')
-    return date(2000 + int(yy), SPANISH_MONTHS[m.lower()], int(d)).isoformat()
+    return date(2000+int(yy), SPANISH_MONTHS[m.lower()], int(d)).isoformat()
 
 @lru_cache(maxsize=1)
 def load_events_from_excel():
-    """
-    Lee deadlines.xlsx desde la carpeta /app (un nivel arriba de /api)
-    y devuelve lista de dicts con keys:
-      proveedor, pais, marca, user, fecha_iso
-    """
-    base_dir = os.path.dirname(os.path.dirname(__file__))  # carpeta /app
-    path = os.path.join(base_dir, "deadlines.xlsx")
-    df = pd.read_excel(path, engine="openpyxl")
-
-    events = []
-    for _, row in df.iterrows():
-        events.append({
-            "proveedor": row.get("PROVEEDOR", "Proveedor1"),      # si agregas columna PROVEEDOR
-            "pais":      row["PAIS"],
-            "marca":     row["MARCA"],
-            "user":      row.get("USER", "brand1"),               # si agregas columna USER
-            "fecha_iso": parse_spanish_date(row["DEADLINE PROVEEDOR"])
+    df = pd.read_excel(str(EXCEL_PATH), engine="openpyxl")
+    evs = []
+    for _, r in df.iterrows():
+        evs.append({
+            "proveedor": r.get("PROVEEDOR", "Proveedor1"),
+            "pais":      r["PAIS"],
+            "marca":     r["MARCA"],
+            "user":      r.get("USER", "brand1"),
+            "fecha_iso": parse_spanish_date(r["DEADLINE PROVEEDOR"])
         })
-    return events
+    return evs
 
-# ── Rutas de autenticación ────────────────────────────────────────────────
+# ── Rutas (login, logout, home) ───────────────────────────────────────────
 @app.get("/login", response_class=HTMLResponse)
 def login_get(request: Request):
     if _get_user(request):
@@ -78,22 +73,12 @@ def login_get(request: Request):
     return templates.TemplateResponse("login.html", {"request": request, "error": None})
 
 @app.post("/login", response_class=HTMLResponse)
-def login_post(
-    request: Request,
-    username: str = Form(...),
-    password: str = Form(...)
-):
+def login_post(request: Request, username: str = Form(...), password: str = Form(...)):
     if CREDENTIALS.get(username) != password:
         return templates.TemplateResponse("login.html", {"request": request, "error": "Credenciales incorrectas"})
     resp = RedirectResponse("/", 303)
-    resp.set_cookie(
-        "session",
-        signer.sign(username.encode()).decode(),
-        httponly=True,
-        max_age=60*60*24*30,
-        path="/",
-        samesite="lax"
-    )
+    resp.set_cookie("session", signer.sign(username.encode()).decode(),
+                    httponly=True, max_age=60*60*24*30, path="/", samesite="lax")
     return resp
 
 @app.get("/logout")
@@ -102,7 +87,6 @@ def logout():
     resp.delete_cookie("session", path="/")
     return resp
 
-# ── Página principal ────────────────────────────────────────────────────
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request, user: str = Depends(_require_user)):
     return templates.TemplateResponse("calendar.html", {"request": request, "user": user})
@@ -110,25 +94,19 @@ def home(request: Request, user: str = Depends(_require_user)):
 # ── API JSON ──────────────────────────────────────────────────────────────
 @app.get("/api/providers")
 def api_providers(user: str = Depends(_require_user)):
-    events = load_events_from_excel()
-    provs = {ev["proveedor"] for ev in events if ev["user"] == user}
+    provs = {ev["proveedor"] for ev in load_events_from_excel() if ev["user"] == user}
     return JSONResponse(sorted(provs))
 
 @app.get("/api/countries")
 def api_countries(provider: str, user: str = Depends(_require_user)):
-    events = load_events_from_excel()
-    ctries = {ev["pais"] for ev in events if ev["proveedor"] == provider and ev["user"] == user}
+    ctries = {ev["pais"] for ev in load_events_from_excel()
+              if ev["proveedor"] == provider and ev["user"] == user}
     return JSONResponse(sorted(ctries))
 
 @app.get("/api/events")
-def api_events(
-    provider: str,
-    country: str,
-    user: str = Depends(_require_user)
-):
-    events = load_events_from_excel()
+def api_events(provider: str, country: str, user: str = Depends(_require_user)):
     datos = []
-    for ev in events:
+    for ev in load_events_from_excel():
         if (ev["proveedor"], ev["pais"], ev["user"]) == (provider, country, user):
             datos.append({
                 "title":           f"{ev['marca']} – PEDIDO",
@@ -138,4 +116,3 @@ def api_events(
                 "borderColor":     "#f58220"
             })
     return JSONResponse(datos)
-

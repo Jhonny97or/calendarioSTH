@@ -1,8 +1,8 @@
 {
   "builds": [
     {
-      "src": "app/api/index.py",
-      "use": "@vercel/python",
+      "src":    "app/api/index.py",
+      "use":    "@vercel/python",
       "config": { "runtime": "python3.11" }
     }
   ],

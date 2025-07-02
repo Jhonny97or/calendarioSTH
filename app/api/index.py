@@ -1,12 +1,7 @@
 import os
 from pathlib import Path
-from fastapi import (
-    FastAPI, Request, Form, Depends,
-    HTTPException
-)
-from fastapi.responses import (
-    HTMLResponse, RedirectResponse, JSONResponse
-)
+from fastapi import FastAPI, Request, Form, Depends, HTTPException
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from itsdangerous import Signer, BadSignature
@@ -14,22 +9,28 @@ from itsdangerous import Signer, BadSignature
 from datetime import date
 from functools import lru_cache
 
-# ─────────────────── Rutas base  ────────────────────────────────────────────
-REPO_ROOT     = Path(__file__).resolve().parent.parent.parent
+# ─────────────────────────────  Rutas base  ────────────────────────────────
+REPO_ROOT     = Path(__file__).resolve().parent.parent.parent   # …/var/task
 STATIC_DIR    = REPO_ROOT / "static"
 TEMPLATES_DIR = REPO_ROOT / "templates"
 
-# ─────────────────── App & mounts ───────────────────────────────────────────
+# ──────────────────────────────  FastAPI  ──────────────────────────────────
 app = FastAPI()
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 signer = Signer(os.environ.get("SESSION_SECRET", "dev-secret"))
 
-# ▶▶  INCORPORAMOS el router ICS
-from . import api_ics
+# ─── Registro del router ICS (soporta ambos tipos de import) ───────────────
+try:
+    # Si index.py y api_ics.py comparten paquete (hay __init__.py)
+    from . import api_ics        # import relativo
+except ImportError:
+    # Si NO es paquete, prueba import absoluto
+    import api_ics
+
 app.include_router(api_ics.router)
 
-# ─────────────────── Credenciales demo ──────────────────────────────────────
+# ──────────────────────────  Credenciales demo  ────────────────────────────
 CREDENTIALS = {f"brand{i}": f"brand{i}" for i in range(1, 11)}
 
 # ─────────────────── Datos de ejemplo ──────────────────────────────────────
@@ -227,35 +228,33 @@ RAW_EVENTS = [
     ("Proveedor3", "SHISEIDO TRAVEL RETAIL AMERICAS",     "PANAMA", "06-dic-25"),
 ]
 
-# ─────────────────── Parsing fecha española → ISO ───────────────────────────
-SPANISH_MONTHS = {
-    "ene": 1, "feb": 2, "mar": 3, "abr": 4,
-    "may": 5, "jun": 6, "jul": 7, "ago": 8,
-    "sep": 9, "oct":10, "nov":11, "dic":12,
-}
 
+# ───────────────────  Conversión “06-jul-25” → ISO  ────────────────────────
+SPANISH_MONTHS = {
+    "ene": 1, "feb": 2, "mar": 3, "abr": 4, "may": 5, "jun": 6,
+    "jul": 7, "ago": 8, "sep": 9, "oct":10, "nov":11, "dic":12,
+}
 def parse_spanish_date(s: str) -> str:
-    """'06-jul-25' → '2025-07-06'"""
     d, m, yy = s.split("-")
     return date(2000 + int(yy), SPANISH_MONTHS[m.lower()], int(d)).isoformat()
 
-# ─────────────────── Cache de eventos ───────────────────────────────────────
+# ───────────────────────  Cache eventos  ───────────────────────────────────
 @lru_cache(maxsize=1)
 def load_events_manual():
     evs = []
-    for prov, marca, pais, fecha_str in RAW_EVENTS:
-        if not fecha_str:                      # filas "sin fecha" se omiten
-            continue
+    for prov, marca, pais, fecha in RAW_EVENTS:
+        if not fecha:
+            continue                     # omite “sin fecha”
         evs.append({
             "proveedor": prov,
             "pais":      pais,
             "marca":     marca,
-            "user":      "brand1",             # demo
-            "fecha_iso": parse_spanish_date(fecha_str)
+            "user":      "brand1",       # demo
+            "fecha_iso": parse_spanish_date(fecha),
         })
     return evs
 
-# ─────────────────── Auth helpers ───────────────────────────────────────────
+# ────────────────────────  Auth helpers  ───────────────────────────────────
 def _get_user(request: Request):
     tok = request.cookies.get("session")
     if not tok:
@@ -271,7 +270,7 @@ def _require_user(request: Request):
         raise HTTPException(status_code=303, headers={"Location": "/login"})
     return u
 
-# ─────────────────── Auth routes ───────────────────────────────────────────
+# ────────────────────  Rutas de autenticación  ────────────────────────────
 @app.get("/login", response_class=HTMLResponse)
 def login_get(request: Request):
     if _get_user(request):
@@ -289,7 +288,7 @@ def login_post(request: Request, username: str = Form(...), password: str = Form
         "session",
         signer.sign(username.encode()).decode(),
         httponly=True, max_age=60*60*24*30,
-        path="/", samesite="lax"
+        path="/", samesite="lax",
     )
     return resp
 
@@ -299,29 +298,29 @@ def logout():
     r.delete_cookie("session", path="/")
     return r
 
-# ─────────────────── Home ───────────────────────────────────────────────────
+# ───────────────────────────  Home  ────────────────────────────────────────
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request, user: str = Depends(_require_user)):
     return templates.TemplateResponse("calendar.html", {"request": request, "user": user})
 
-# ─────────────────── API JSON ───────────────────────────────────────────────
+# ───────────────────────────  API JSON  ─────────────────────────────────────
 @app.get("/api/providers")
 def api_providers(user: str = Depends(_require_user)):
-    p = {ev["proveedor"] for ev in load_events_manual() if ev["user"] == user}
-    return JSONResponse(sorted(p))
+    provs = {ev["proveedor"] for ev in load_events_manual() if ev["user"] == user}
+    return JSONResponse(sorted(provs))
 
 @app.get("/api/countries")
 def api_countries(provider: str, user: str = Depends(_require_user)):
-    c = {
+    ctries = {
         ev["pais"]
         for ev in load_events_manual()
         if ev["proveedor"] == provider and ev["user"] == user
     }
-    return JSONResponse(sorted(c))
+    return JSONResponse(sorted(ctries))
 
 @app.get("/api/events")
 def api_events(provider: str, country: str, user: str = Depends(_require_user)):
-    data = [
+    datos = [
         {
             "title":           f"{ev['marca']} – PEDIDO",
             "start":           ev["fecha_iso"],
@@ -332,6 +331,4 @@ def api_events(provider: str, country: str, user: str = Depends(_require_user)):
         for ev in load_events_manual()
         if (ev["proveedor"], ev["pais"], ev["user"]) == (provider, country, user)
     ]
-    return JSONResponse(data)
-
-
+    return JSONResponse(datos)

@@ -5,3 +5,5 @@ python-multipart==0.0.9
 itsdangerous==2.2.0
 pandas
 openpyxl
+icalendar==5.0.10
+

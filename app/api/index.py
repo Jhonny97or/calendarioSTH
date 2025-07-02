@@ -323,8 +323,8 @@ def api_events(provider: str, country: str, user: str = Depends(_require_user)):
 
 # ────────────  REGISTRO DEL ROUTER ICS (al final)  ─────────────────────────
 try:
-    from . import api_ics          # import relativo si es paquete
+#    from . import api_ics          # import relativo si es paquete
 except ImportError:
     import api_ics                 # import absoluto si no lo es
-app.include_router(api_ics.router)
+# app.include_router(api_ics.router)
 

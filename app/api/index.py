@@ -8,18 +8,18 @@ from itsdangerous import Signer, BadSignature
 from datetime import date
 from functools import lru_cache
 
-# ─────────────────────────────  Rutas base  ────────────────────────────────
+# ───────────  Rutas base  ───────────
 REPO_ROOT     = Path(__file__).resolve().parent.parent.parent
 STATIC_DIR    = REPO_ROOT / "static"
 TEMPLATES_DIR = REPO_ROOT / "templates"
 
-# ──────────────────────────────  FastAPI  ──────────────────────────────────
+# ────────────  App  ────────────────
 app = FastAPI()
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 signer = Signer(os.environ.get("SESSION_SECRET", "dev-secret"))
 
-# ─────────────────────────  Credenciales demo  ────────────────────────────
+# ───────  Credenciales demo  ───────
 CREDENTIALS = {f"brand{i}": f"brand{i}" for i in range(1, 11)}
 
 # ─────────────────── Datos de ejemplo ──────────────────────────────────────
@@ -219,112 +219,94 @@ RAW_EVENTS = [
 
 
 SPANISH_MONTHS = {
-    'ene': 1, 'feb': 2, 'mar': 3, 'abr': 4, 'may': 5, 'jun': 6,
-    'jul': 7, 'ago': 8, 'sep': 9, 'oct':10, 'nov':11, 'dic':12,
+    "ene":1,"feb":2,"mar":3,"abr":4,"may":5,"jun":6,
+    "jul":7,"ago":8,"sep":9,"oct":10,"nov":11,"dic":12,
 }
-
 def parse_spanish_date(s: str) -> str:
-    d, m, yy = s.split('-')
-    return date(2000 + int(yy), SPANISH_MONTHS[m.lower()], int(d)).isoformat()
+    d,m,yy = s.split("-")
+    return date(2000+int(yy), SPANISH_MONTHS[m.lower()], int(d)).isoformat()
 
 @lru_cache(maxsize=1)
 def load_events_manual():
-    evs = []
-    for prov, marca, pais, fecha in RAW_EVENTS:
-        if not fecha:
-            continue
+    evs=[]
+    for prov,marca,pais,fecha in RAW_EVENTS:
+        if not fecha: continue
         evs.append({
-            "proveedor": prov,
-            "pais":      pais,
-            "marca":     marca,
-            "user":      "brand1",
-            "fecha_iso": parse_spanish_date(fecha),
+            "proveedor":prov,
+            "pais":pais,
+            "marca":marca,
+            "user":"brand1",
+            "fecha_iso":parse_spanish_date(fecha),
         })
     return evs
 
-# ───────────────────────────  Auth helpers  ────────────────────────────────
-def _get_user(request: Request):
-    tok = request.cookies.get("session")
-    if not tok:
-        return None
-    try:
-        return signer.unsign(tok).decode()
-    except BadSignature:
-        return None
+# ───────────  Auth  ───────────
+def _get_user(req: Request):
+    tok=req.cookies.get("session")
+    if not tok: return None
+    try: return signer.unsign(tok).decode()
+    except BadSignature: return None
 
-def _require_user(request: Request):
-    u = _get_user(request)
+def _require_user(req: Request):
+    u=_get_user(req)
     if not u:
-        raise HTTPException(status_code=303, headers={"Location": "/login"})
+        raise HTTPException(status_code=303, headers={"Location":"/login"})
     return u
 
-# ────────────────────────  Login / Logout  ─────────────────────────────────
+# ───────  Login / Logout  ───────
 @app.get("/login", response_class=HTMLResponse)
-def login_get(request: Request):
-    if _get_user(request):
-        return RedirectResponse("/", 303)
-    return templates.TemplateResponse("login.html", {"request": request, "error": None})
+def login_get(req: Request):
+    if _get_user(req): return RedirectResponse("/",303)
+    return templates.TemplateResponse("login.html",{"request":req,"error":None})
 
 @app.post("/login", response_class=HTMLResponse)
-def login_post(request: Request, username: str = Form(...), password: str = Form(...)):
-    if CREDENTIALS.get(username) != password:
-        return templates.TemplateResponse("login.html", {
-            "request": request, "error": "Credenciales incorrectas"
-        })
-    resp = RedirectResponse("/", 303)
-    resp.set_cookie(
-        "session",
-        signer.sign(username.encode()).decode(),
-        httponly=True, max_age=60*60*24*30,
-        path="/", samesite="lax",
-    )
-    return resp
+def login_post(req: Request, username:str=Form(...), password:str=Form(...)):
+    if CREDENTIALS.get(username)!=password:
+        return templates.TemplateResponse("login.html",
+               {"request":req,"error":"Credenciales incorrectas"})
+    r=RedirectResponse("/",303)
+    r.set_cookie("session", signer.sign(username.encode()).decode(),
+                 httponly=True, max_age=60*60*24*30,
+                 path="/", samesite="lax")
+    return r
 
 @app.get("/logout")
 def logout():
-    r = RedirectResponse("/login", 303)
-    r.delete_cookie("session", path="/")
+    r=RedirectResponse("/login",303)
+    r.delete_cookie("session",path="/")
     return r
 
-# ─────────────────────────────  Home  ──────────────────────────────────────
+# ───────────  Home  ───────────
 @app.get("/", response_class=HTMLResponse)
-def home(request: Request, user: str = Depends(_require_user)):
-    return templates.TemplateResponse("calendar.html", {"request": request, "user": user})
+def home(request:Request, user:str=Depends(_require_user)):
+    return templates.TemplateResponse("calendar.html",
+                                      {"request":request,"user":user})
 
-# ───────────────────────────  API JSON  ─────────────────────────────────────
+# ───────────  API JSON  ───────────
 @app.get("/api/providers")
-def api_providers(user: str = Depends(_require_user)):
-    provs = {ev["proveedor"] for ev in load_events_manual() if ev["user"] == user}
+def api_providers(user:str=Depends(_require_user)):
+    provs={ev["proveedor"] for ev in load_events_manual() if ev["user"]==user}
     return JSONResponse(sorted(provs))
 
 @app.get("/api/countries")
-def api_countries(provider: str, user: str = Depends(_require_user)):
-    ctries = {
-        ev["pais"]
-        for ev in load_events_manual()
-        if ev["proveedor"] == provider and ev["user"] == user
-    }
+def api_countries(provider:str, user:str=Depends(_require_user)):
+    ctries={ev["pais"] for ev in load_events_manual()
+            if ev["proveedor"]==provider and ev["user"]==user}
     return JSONResponse(sorted(ctries))
 
 @app.get("/api/events")
-def api_events(provider: str, country: str, user: str = Depends(_require_user)):
-    datos = [
-        {
-            "title":           f"{ev['marca']} – PEDIDO",
-            "start":           ev["fecha_iso"],
-            "allDay":          True,
-            "backgroundColor": "#f58220",
-            "borderColor":     "#f58220",
-        }
-        for ev in load_events_manual()
-        if (ev["proveedor"], ev["pais"], ev["user"]) == (provider, country, user)
-    ]
+def api_events(provider:str, country:str, user:str=Depends(_require_user)):
+    datos=[{
+        "title":f"{ev['marca']} – PEDIDO",
+        "start":ev["fecha_iso"],
+        "allDay":True,
+        "backgroundColor":"#f58220",
+        "borderColor":"#f58220",
+    } for ev in load_events_manual()
+        if (ev["proveedor"],ev["pais"],ev["user"])==(provider,country,user)]
     return JSONResponse(datos)
 
-# ────────────  REGISTRO DEL ROUTER ICS (al final)  ─────────────────────────
-try:
-#    from . import api_ics          # import relativo si es paquete
-except ImportError:
-    import api_ics                 # import absoluto si no lo es
-# app.include_router(api_ics.router)
+# ───────────  (Fin)  ───────────
+
+# 🚫  NO hay import de api_ics ni app.include_router
 

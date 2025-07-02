@@ -5,12 +5,11 @@ from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from itsdangerous import Signer, BadSignature
-
 from datetime import date
 from functools import lru_cache
 
 # ─────────────────────────────  Rutas base  ────────────────────────────────
-REPO_ROOT     = Path(__file__).resolve().parent.parent.parent   # …/var/task
+REPO_ROOT     = Path(__file__).resolve().parent.parent.parent
 STATIC_DIR    = REPO_ROOT / "static"
 TEMPLATES_DIR = REPO_ROOT / "templates"
 
@@ -20,17 +19,7 @@ app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 signer = Signer(os.environ.get("SESSION_SECRET", "dev-secret"))
 
-# ─── Registro del router ICS (soporta ambos tipos de import) ───────────────
-try:
-    # Si index.py y api_ics.py comparten paquete (hay __init__.py)
-    from . import api_ics        # import relativo
-except ImportError:
-    # Si NO es paquete, prueba import absoluto
-    import api_ics
-
-app.include_router(api_ics.router)
-
-# ──────────────────────────  Credenciales demo  ────────────────────────────
+# ─────────────────────────  Credenciales demo  ────────────────────────────
 CREDENTIALS = {f"brand{i}": f"brand{i}" for i in range(1, 11)}
 
 # ─────────────────── Datos de ejemplo ──────────────────────────────────────
@@ -229,32 +218,31 @@ RAW_EVENTS = [
 ]
 
 
-# ───────────────────  Conversión “06-jul-25” → ISO  ────────────────────────
 SPANISH_MONTHS = {
-    "ene": 1, "feb": 2, "mar": 3, "abr": 4, "may": 5, "jun": 6,
-    "jul": 7, "ago": 8, "sep": 9, "oct":10, "nov":11, "dic":12,
+    'ene': 1, 'feb': 2, 'mar': 3, 'abr': 4, 'may': 5, 'jun': 6,
+    'jul': 7, 'ago': 8, 'sep': 9, 'oct':10, 'nov':11, 'dic':12,
 }
+
 def parse_spanish_date(s: str) -> str:
-    d, m, yy = s.split("-")
+    d, m, yy = s.split('-')
     return date(2000 + int(yy), SPANISH_MONTHS[m.lower()], int(d)).isoformat()
 
-# ───────────────────────  Cache eventos  ───────────────────────────────────
 @lru_cache(maxsize=1)
 def load_events_manual():
     evs = []
     for prov, marca, pais, fecha in RAW_EVENTS:
         if not fecha:
-            continue                     # omite “sin fecha”
+            continue
         evs.append({
             "proveedor": prov,
             "pais":      pais,
             "marca":     marca,
-            "user":      "brand1",       # demo
+            "user":      "brand1",
             "fecha_iso": parse_spanish_date(fecha),
         })
     return evs
 
-# ────────────────────────  Auth helpers  ───────────────────────────────────
+# ───────────────────────────  Auth helpers  ────────────────────────────────
 def _get_user(request: Request):
     tok = request.cookies.get("session")
     if not tok:
@@ -270,7 +258,7 @@ def _require_user(request: Request):
         raise HTTPException(status_code=303, headers={"Location": "/login"})
     return u
 
-# ────────────────────  Rutas de autenticación  ────────────────────────────
+# ────────────────────────  Login / Logout  ─────────────────────────────────
 @app.get("/login", response_class=HTMLResponse)
 def login_get(request: Request):
     if _get_user(request):
@@ -298,7 +286,7 @@ def logout():
     r.delete_cookie("session", path="/")
     return r
 
-# ───────────────────────────  Home  ────────────────────────────────────────
+# ─────────────────────────────  Home  ──────────────────────────────────────
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request, user: str = Depends(_require_user)):
     return templates.TemplateResponse("calendar.html", {"request": request, "user": user})
@@ -332,3 +320,11 @@ def api_events(provider: str, country: str, user: str = Depends(_require_user)):
         if (ev["proveedor"], ev["pais"], ev["user"]) == (provider, country, user)
     ]
     return JSONResponse(datos)
+
+# ────────────  REGISTRO DEL ROUTER ICS (al final)  ─────────────────────────
+try:
+    from . import api_ics          # import relativo si es paquete
+except ImportError:
+    import api_ics                 # import absoluto si no lo es
+app.include_router(api_ics.router)
+

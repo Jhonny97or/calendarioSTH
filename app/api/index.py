@@ -12,7 +12,7 @@ from datetime import date
 from functools import lru_cache
 
 # ───────────  Rutas base  ───────────
-REPO_ROOT     = Path(__file__).resolve().parent
+REPO_ROOT     = Path(__file__).resolve().parent.parent.parent
 STATIC_DIR    = REPO_ROOT / "static"
 TEMPLATES_DIR = REPO_ROOT / "templates"
 
@@ -25,7 +25,8 @@ signer = Signer(os.environ.get("SESSION_SECRET", "dev-secret"))
 # ─────────────────── Datos de ejemplo ──────────────────────────────────────
 #  (Proveedor, Marca, País, Fecha)
 RAW_EVENTS = [
-    # ... (otros eventos) ...
+    # ... (todos tus eventos) ...
+
     # ——— Proveedor 1 (CHANEL, CLARINS, …) ———
     ("Proveedor1", "CHANEL",  "COLOMBIA",   "30-ene-25"),
     ("Proveedor1", "CHANEL",  "COLOMBIA",   "28-feb-25"),
@@ -247,32 +248,32 @@ def parse_spanish_date(s: str) -> str:
     return date(2000 + int(yy), SPANISH_MONTHS[m.lower()], int(d)).isoformat()
 
 @lru_cache(maxsize=1)
-def load_events():
-    evs = []
+def load_events_manual():
+    events = []
     for prov, marca, pais, fecha in RAW_EVENTS:
         if not fecha:
             continue
-        evs.append({
+        events.append({
             "proveedor": prov,
-            "pais": pais,
             "marca": marca,
+            "pais": pais,
             "fecha_iso": parse_spanish_date(fecha),
         })
-    return evs
+    return events
 
 # ───────────  Auth ───────────
-def get_user(request: Request):
-    tok = request.cookies.get("session")
-    if not tok:
+def _get_user(request: Request):
+    token = request.cookies.get("session")
+    if not token:
         return None
     try:
-        return signer.unsign(tok).decode()
+        return signer.unsign(token).decode()
     except BadSignature:
         return None
 
 
-def require_user(request: Request):
-    user = get_user(request)
+def _require_user(request: Request):
+    user = _get_user(request)
     if not user:
         raise HTTPException(status_code=303, headers={"Location": "/login"})
     return user
@@ -280,19 +281,23 @@ def require_user(request: Request):
 # ───────  Login / Logout ───────
 @app.get("/login", response_class=HTMLResponse)
 def login_get(request: Request):
-    if get_user(request):
+    if _get_user(request):
         return RedirectResponse("/", status_code=303)
     return templates.TemplateResponse("login.html", {"request": request, "error": None})
 
 @app.post("/login", response_class=HTMLResponse)
-def login_post(request: Request,
-               username: str = Form(...),
-               password: str = Form(...)):
-    CREDENTIALS = {"brand1": "brand1"}
+def login_post(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...)
+):
+    CREDENTIALS = {f"brand{i}": f"brand{i}" for i in range(1, 11)}
     if CREDENTIALS.get(username) != password:
-        return templates.TemplateResponse("login.html", {"request": request, "error": "Credenciales incorrectas"})
-    response = RedirectResponse("/", status_code=303)
-    response.set_cookie(
+        return templates.TemplateResponse(
+            "login.html", {"request": request, "error": "Credenciales incorrectas"}
+        )
+    resp = RedirectResponse("/", status_code=303)
+    resp.set_cookie(
         key="session",
         value=signer.sign(username.encode()).decode(),
         httponly=True,
@@ -300,41 +305,42 @@ def login_post(request: Request,
         path="/",
         samesite="lax"
     )
-    return response
+    return resp
 
 @app.get("/logout")
 def logout():
-    response = RedirectResponse("/login", status_code=303)
-    response.delete_cookie("session", path="/")
-    return response
+    resp = RedirectResponse("/login", status_code=303)
+    resp.delete_cookie("session", path="/")
+    return resp
 
 # ───────────  Home ───────────
 @app.get("/", response_class=HTMLResponse)
-def home(request: Request, user: str = Depends(require_user)):
-    return templates.TemplateResponse("calendar.html", {"request": request, "user": user})
+def home(request: Request, user: str = Depends(_require_user)):
+    return templates.TemplateResponse(
+        "calendar.html", {"request": request, "user": user}
+    )
 
 # ───────────  API JSON ───────────
 @app.get("/api/countries")
-def api_countries(user: str = Depends(require_user)):
-    countries = {ev["pais"] for ev in load_events()}
+def api_countries(user: str = Depends(_require_user)):
+    # Devuelve todos los países
+    countries = {ev["pais"] for ev in load_events_manual()}
     return JSONResponse(sorted(countries))
 
 @app.get("/api/events")
-def api_events(country: str, user: str = Depends(require_user)):
-    datos = []
-    for ev in load_events():
+def api_events(country: str, user: str = Depends(_require_user)):
+    items = []
+    for ev in load_events_manual():
         if ev["pais"] == country:
-            datos.append({
+            items.append({
                 "title": f"{ev['marca']} – PEDIDO",
                 "start": ev["fecha_iso"],
                 "allDay": True,
                 "backgroundColor": "#f58220",
                 "borderColor": "#f58220",
             })
-    return JSONResponse(datos)
+    return JSONResponse(items)
 ```
-
----
 
 ### templates/calendar.html
 
@@ -349,7 +355,10 @@ def api_events(country: str, user: str = Depends(require_user)):
 </head>
 <body>
   <header>
-    <h1>Pedidos por País</h1>
+    <div class="logo-wrap">
+      <img src="/static/logo.png" alt="Logo">
+      <span>Calendario</span>
+    </div>
     <div>
       <strong>{{ user }}</strong> · <a href="/logout">Salir</a>
     </div>
@@ -366,25 +375,22 @@ def api_events(country: str, user: str = Depends(require_user)):
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       var calendarEl = document.getElementById('calendar');
-      var calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'dayGridMonth'
-      });
+      var calendar = new FullCalendar.Calendar(calendarEl, { initialView: 'dayGridMonth' });
       calendar.render();
 
-      // Carga la lista de países
+      // Lista de países
       fetch('/api/countries')
         .then(res => res.json())
         .then(data => {
-          var select = document.getElementById('country-select');
-          data.forEach(function(country) {
+          var sel = document.getElementById('country-select');
+          data.forEach(c => {
             var opt = document.createElement('option');
-            opt.value = country;
-            opt.text = country;
-            select.add(opt);
+            opt.value = c; opt.text = c;
+            sel.add(opt);
           });
         });
 
-      // Al cambiar de país, carga sus eventos
+      // Eventos por país
       document.getElementById('country-select').addEventListener('change', function() {
         var country = this.value;
         if (!country) return;
@@ -400,4 +406,5 @@ def api_events(country: str, user: str = Depends(require_user)):
 </body>
 </html>
 ```
+
 

@@ -3,7 +3,7 @@
 ```python
 import os
 from pathlib import Path
-from fastapi import FastAPI, Request, Depends, HTTPException
+from fastapi import FastAPI, Request, Form, Depends, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -25,6 +25,7 @@ signer = Signer(os.environ.get("SESSION_SECRET", "dev-secret"))
 # ─────────────────── Datos de ejemplo ──────────────────────────────────────
 #  (Proveedor, Marca, País, Fecha)
 RAW_EVENTS = [
+    # ... (otros eventos) ...
     # ——— Proveedor 1 (CHANEL, CLARINS, …) ———
     ("Proveedor1", "CHANEL",  "COLOMBIA",   "30-ene-25"),
     ("Proveedor1", "CHANEL",  "COLOMBIA",   "28-feb-25"),
@@ -242,7 +243,6 @@ SPANISH_MONTHS = {
 }
 
 def parse_spanish_date(s: str) -> str:
-    # Convierte "dd-mmm-yy" a ISO de la forma YYYY-MM-DD
     d, m, yy = s.split("-")
     return date(2000 + int(yy), SPANISH_MONTHS[m.lower()], int(d)).isoformat()
 
@@ -285,15 +285,20 @@ def login_get(request: Request):
     return templates.TemplateResponse("login.html", {"request": request, "error": None})
 
 @app.post("/login", response_class=HTMLResponse)
-def login_post(request: Request, username: str = Form(...), password: str = Form(...)):
-    # Ajusta CREDENTIALS según tu caso
+def login_post(request: Request,
+               username: str = Form(...),
+               password: str = Form(...)):
     CREDENTIALS = {"brand1": "brand1"}
     if CREDENTIALS.get(username) != password:
         return templates.TemplateResponse("login.html", {"request": request, "error": "Credenciales incorrectas"})
     response = RedirectResponse("/", status_code=303)
     response.set_cookie(
-        key="session", value=signer.sign(username.encode()).decode(),
-        httponly=True, max_age=60 * 60 * 24 * 30, path="/", samesite="lax"
+        key="session",
+        value=signer.sign(username.encode()).decode(),
+        httponly=True,
+        max_age=60 * 60 * 24 * 30,
+        path="/",
+        samesite="lax"
     )
     return response
 
@@ -311,13 +316,11 @@ def home(request: Request, user: str = Depends(require_user)):
 # ───────────  API JSON ───────────
 @app.get("/api/countries")
 def api_countries(user: str = Depends(require_user)):
-    # Retorna lista de países disponibles para el usuario
     countries = {ev["pais"] for ev in load_events()}
     return JSONResponse(sorted(countries))
 
 @app.get("/api/events")
 def api_events(country: str, user: str = Depends(require_user)):
-    # Retorna los eventos filtrados solo por país
     datos = []
     for ev in load_events():
         if ev["pais"] == country:
@@ -368,7 +371,8 @@ def api_events(country: str, user: str = Depends(require_user)):
       });
       calendar.render();
 
-      // Carga la lista de países\ n      fetch('/api/countries')
+      // Carga la lista de países
+      fetch('/api/countries')
         .then(res => res.json())
         .then(data => {
           var select = document.getElementById('country-select');
@@ -380,7 +384,8 @@ def api_events(country: str, user: str = Depends(require_user)):
           });
         });
 
-      // Al cambiar de país, carga sus eventos\ n      document.getElementById('country-select').addEventListener('change', function() {
+      // Al cambiar de país, carga sus eventos
+      document.getElementById('country-select').addEventListener('change', function() {
         var country = this.value;
         if (!country) return;
         fetch(`/api/events?country=${encodeURIComponent(country)}`)
@@ -395,3 +400,4 @@ def api_events(country: str, user: str = Depends(require_user)):
 </body>
 </html>
 ```
+

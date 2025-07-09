@@ -10,7 +10,7 @@
   <header>
     <div class="logo-wrap">
       <img src="/static/logo.png" alt="Saint Honoré">
-      <span>Demand&nbsp;Planning</span>
+      <span>Demand Planning</span>
     </div>
     <div>
       <strong>{{ user }}</strong> · <a href="/logout">Salir</a>
@@ -25,21 +25,61 @@
     </label>
 
     <label>País:
-      <select id="country-select">
+      <select id="country-select" disabled>
         <option value="">— Elegir —</option>
       </select>
     </label>
 
-    <!-- ▶ NUEVO botón / enlace -->
     <a id="btn-ics" class="btn" href="#" download style="display:none">
-      Descargar&nbsp;ICS
+      Descargar ICS
     </a>
   </section>
 
   <div id="calendar"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
-  <script src="/static/script.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const provSel    = document.getElementById('provider-select');
+      const countrySel = document.getElementById('country-select');
+      const icsBtn     = document.getElementById('btn-ics');
+      const calendarEl = document.getElementById('calendar');
+      const calendar   = new FullCalendar.Calendar(calendarEl, { initialView: 'dayGridMonth' });
+      calendar.render();
+
+      // 1) Proveedores
+      fetch('/api/providers').then(r=>r.json()).then(list=>
+        list.forEach(p=>provSel.add(new Option(p,p)))
+      );
+
+      // 2) Países al elegir proveedor
+      provSel.addEventListener('change', ()=>{
+        countrySel.innerHTML = '<option value=\"\">— Elegir —</option>';
+        calendar.removeAllEvents();
+        icsBtn.style.display = 'none';
+        if (!provSel.value) {
+          countrySel.disabled = true;
+          return;
+        }
+        countrySel.disabled = false;
+        fetch(`/api/countries?provider=${encodeURIComponent(provSel.value)}`)
+          .then(r=>r.json())
+          .then(list=> list.forEach(c=>countrySel.add(new Option(c,c))));
+      });
+
+      // 3) Eventos al elegir país
+      countrySel.addEventListener('change', ()=>{
+        calendar.removeAllEvents();
+        icsBtn.style.display = 'none';
+        if (!provSel.value || !countrySel.value) return;
+        fetch(`/api/events?provider=${encodeURIComponent(provSel.value)}&country=${encodeURIComponent(countrySel.value)}`)
+          .then(r=>r.json())
+          .then(events=>calendar.addEventSource(events));
+        icsBtn.href = `/api/ics?provider=${encodeURIComponent(provSel.value)}&country=${encodeURIComponent(countrySel.value)}`;
+        icsBtn.style.display = 'inline-block';
+      });
+    });
+  </script>
 </body>
 </html>
 

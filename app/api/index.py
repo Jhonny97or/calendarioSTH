@@ -1,4 +1,3 @@
-# api/index.py
 import os
 from pathlib import Path
 from fastapi import FastAPI, Request, Form, Depends, HTTPException
@@ -10,8 +9,8 @@ from datetime import date
 from functools import lru_cache
 
 # ───────────  Rutas base  ───────────
-# Ajusta según dónde esté este archivo; aquí asumimos que está en api/index.py
-REPO_ROOT     = Path(__file__).resolve().parent.parent
+# index.py está en <raíz>/api/index.py, así que subimos 3 veces a la raíz
+REPO_ROOT     = Path(__file__).resolve().parent.parent.parent
 STATIC_DIR    = REPO_ROOT / "static"
 TEMPLATES_DIR = REPO_ROOT / "templates"
 
@@ -229,17 +228,16 @@ def parse_spanish_date(s: str) -> str:
 
 @lru_cache(maxsize=1)
 def load_events():
-    evs = []
-    for prov, marca, pais, fecha in RAW_EVENTS:
-        if not fecha:
-            continue
-        evs.append({
+    return [
+        {
             "proveedor": prov,
             "marca": marca,
             "pais": pais,
-            "fecha_iso": parse_spanish_date(fecha),
-        })
-    return evs
+            "fecha_iso": parse_spanish_date(fecha)
+        }
+        for prov, marca, pais, fecha in RAW_EVENTS
+        if fecha
+    ]
 
 # ───────────  Auth ───────────
 def _get_user(request: Request):
@@ -265,9 +263,7 @@ def login_get(request: Request):
     return templates.TemplateResponse("login.html", {"request":request, "error":None})
 
 @app.post("/login", response_class=HTMLResponse)
-def login_post(request: Request,
-               username: str = Form(...),
-               password: str = Form(...)):
+def login_post(request: Request, username: str = Form(...), password: str = Form(...)):
     if CREDENTIALS.get(username) != password:
         return templates.TemplateResponse("login.html",
                {"request":request, "error":"Credenciales incorrectas"})
@@ -287,28 +283,24 @@ def logout():
 # ───────────  Home ───────────
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request, user: str = Depends(_require_user)):
-    return templates.TemplateResponse("calendar.html",
-                                      {"request":request, "user":user})
+    return templates.TemplateResponse("calendar.html", {"request":request, "user":user})
 
 # ───────────  API JSON ───────────
 @app.get("/api/countries")
 def api_countries(user: str = Depends(_require_user)):
-    # Devuelve solo la lista de países
-    paises = {ev["pais"] for ev in load_events()}
-    return JSONResponse(sorted(paises))
+    return JSONResponse(sorted({ev["pais"] for ev in load_events()}))
 
 @app.get("/api/events")
 def api_events(country: str, user: str = Depends(_require_user)):
-    # Filtra eventos solo por país
-    items = []
-    for ev in load_events():
-        if ev["pais"] == country:
-            items.append({
-                "title": f"{ev['marca']} – PEDIDO",
-                "start": ev["fecha_iso"],
-                "allDay": True,
-                "backgroundColor": "#f58220",
-                "borderColor": "#f58220",
-            })
-    return JSONResponse(items)
+    return JSONResponse([
+        {
+            "title": f"{ev['marca']} – PEDIDO",
+            "start": ev["fecha_iso"],
+            "allDay": True,
+            "backgroundColor": "#f58220",
+            "borderColor": "#f58220",
+        }
+        for ev in load_events() if ev["pais"] == country
+    ])
+
 

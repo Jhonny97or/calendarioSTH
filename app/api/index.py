@@ -1,6 +1,5 @@
-### main.py
+# /app/api/index.py
 
-```python
 import os
 from pathlib import Path
 from fastapi import FastAPI, Request, Form, Depends, HTTPException
@@ -12,7 +11,8 @@ from datetime import date
 from functools import lru_cache
 
 # ───────────  Rutas base  ───────────
-REPO_ROOT     = Path(__file__).resolve().parent.parent.parent
+# index.py está en /app/api/index.py, sube dos niveles para llegar a /app/
+REPO_ROOT     = Path(__file__).resolve().parent.parent
 STATIC_DIR    = REPO_ROOT / "static"
 TEMPLATES_DIR = REPO_ROOT / "templates"
 
@@ -22,8 +22,10 @@ app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 signer = Signer(os.environ.get("SESSION_SECRET", "dev-secret"))
 
-# ─────────────────── Datos de ejemplo ──────────────────────────────────────
-#  (Proveedor, Marca, País, Fecha)
+# ───────  Credenciales demo  ───────
+CREDENTIALS = {f"brand{i}": f"brand{i}" for i in range(1, 11)}
+
+# ──── Datos de ejemplo ────
 RAW_EVENTS = [
     # ——— Proveedor 1 (CHANEL, CLARINS, …) ———
     ("Proveedor1", "CHANEL",  "COLOMBIA",   "30-ene-25"),
@@ -228,199 +230,76 @@ def parse_spanish_date(s: str) -> str:
     return date(2000 + int(yy), SPANISH_MONTHS[m.lower()], int(d)).isoformat()
 
 @lru_cache(maxsize=1)
-def load_events_manual():
-    events = []
-    for prov, marca, pais, fecha in RAW_EVENTS:
-        if not fecha:
-            continue
-        events.append({
-            "proveedor": prov,
-            "marca": marca,
-            "pais": pais,
-            "fecha_iso": parse_spanish_date(fecha),
-        })
-    return events
+def load_events():
+    return [
+        {"proveedor": prov, "marca": marca, "pais": pais,
+         "fecha_iso": parse_spanish_date(fecha)}
+        for prov, marca, pais, fecha in RAW_EVENTS if fecha
+    ]
 
-# ───────────  Auth ───────────
-def _get_user(request: Request):
-    token = request.cookies.get("session")
-    if not token:
-        return None
-    try:
-        return signer.unsign(token).decode()
-    except BadSignature:
-        return None
+# ─────────── Auth ───────────
+def _get_user(req: Request):
+    tok = req.cookies.get("session")
+    if not tok: return None
+    try: return signer.unsign(tok).decode()
+    except BadSignature: return None
 
+def _require_user(req: Request):
+    u = _get_user(req)
+    if not u:
+        raise HTTPException(status_code=303, headers={"Location":"/login"})
+    return u
 
-def _require_user(request: Request):
-    user = _get_user(request)
-    if not user:
-        raise HTTPException(status_code=303, headers={"Location": "/login"})
-    return user
-
-# ───────  Login / Logout ───────
+# ─────── Login / Logout ───────
 @app.get("/login", response_class=HTMLResponse)
-def login_get(request: Request):
-    if _get_user(request):
-        return RedirectResponse("/", status_code=303)
-    return templates.TemplateResponse("login.html", {"request": request, "error": None})
+def login_get(req: Request):
+    if _get_user(req): return RedirectResponse("/",303)
+    return templates.TemplateResponse("login.html",{"request":req,"error":None})
 
 @app.post("/login", response_class=HTMLResponse)
-def login_post(
-    request: Request,
-    username: str = Form(...),
-    password: str = Form(...)
-):
-    CREDENTIALS = {f"brand{i}": f"brand{i}" for i in range(1, 11)}
+def login_post(req: Request, username: str = Form(...), password: str = Form(...)):
     if CREDENTIALS.get(username) != password:
-        return templates.TemplateResponse(
-            "login.html", {"request": request, "error": "Credenciales incorrectas"}
-        )
-    resp = RedirectResponse("/", status_code=303)
-    resp.set_cookie(
-        key="session",
-        value=signer.sign(username.encode()).decode(),
-        httponly=True,
-        max_age=60 * 60 * 24 * 30,
-        path="/",
-        samesite="lax"
-    )
-    return resp
+        return templates.TemplateResponse("login.html",
+               {"request":req,"error":"Credenciales incorrectas"})
+    r = RedirectResponse("/",303)
+    r.set_cookie("session", signer.sign(username.encode()).decode(),
+                 httponly=True, max_age=60*60*24*30,
+                 path="/", samesite="lax")
+    return r
 
 @app.get("/logout")
 def logout():
-    resp = RedirectResponse("/login", status_code=303)
-    resp.delete_cookie("session", path="/")
-    return resp
+    r = RedirectResponse("/login",303)
+    r.delete_cookie("session",path="/")
+    return r
 
-# ───────────  Home ───────────
+# ─────────── Home ───────────
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request, user: str = Depends(_require_user)):
-    return templates.TemplateResponse(
-        "calendar.html", {"request": request, "user": user}
-    )
+    return templates.TemplateResponse("calendar.html",
+                                      {"request":request,"user":user})
 
-# ───────────  API JSON ───────────
+# ─────────── API JSON ───────────
+@app.get("/api/providers")
+def api_providers(user: str = Depends(_require_user)):
+    return JSONResponse(sorted({ev["proveedor"] for ev in load_events()}))
+
 @app.get("/api/countries")
-def api_countries(user: str = Depends(_require_user)):
-    # Devuelve todos los países
-    countries = {ev["pais"] for ev in load_events_manual()}
-    return JSONResponse(sorted(countries))
+def api_countries(provider: str, user: str = Depends(_require_user)):
+    return JSONResponse(sorted({ev["pais"] for ev in load_events() if ev["proveedor"] == provider}))
 
 @app.get("/api/events")
-def api_events(country: str, user: str = Depends(_require_user)):
-    items = []
-    for ev in load_events_manual():
-        if ev["pais"] == country:
-            items.append({
-                "title": f"{ev['marca']} – PEDIDO",
-                "start": ev["fecha_iso"],
-                "allDay": True,
-                "backgroundColor": "#f58220",
-                "borderColor": "#f58220",
-            })
-    return JSONResponse(items)
-```
-
-### templates/calendar.html
-
-```html
-<!doctype html>
-<html lang="es">
-<head>
-  <meta charset="utf-8">
-  <title>Saint Honoré · Calendario</title>
-  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
-  <link href="/static/style.css" rel="stylesheet">
-</head>
-<body>
-  <header>
-    <div class="logo-wrap">
-      <img src="/static/logo.png" alt="Saint Honoré">
-      <span>Demand Planning</span>
-    </div>
-    <div>
-      <strong>{{ user }}</strong> · <a href="/logout">Salir</a>
-    </div>
-  </header>
-
-  <section class="filters">
-    <label>Proveedor:
-      <select id="provider-select">
-        <option value="">— Elegir —</option>
-      </select>
-    </label>
-
-    <label>País:
-      <select id="country-select" disabled>
-        <option value="">— Elegir —</option>
-      </select>
-    </label>
-
-    <a id="btn-ics" class="btn" href="#" download style="display:none">
-      Descargar ICS
-    </a>
-  </section>
-
-  <div id="calendar"></div>
-
-  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      const calendarEl = document.getElementById('calendar');
-      const calendar = new FullCalendar.Calendar(calendarEl, { initialView: 'dayGridMonth' });
-      calendar.render();
-
-      const provSel = document.getElementById('provider-select');
-      const countrySel = document.getElementById('country-select');
-      const icsBtn    = document.getElementById('btn-ics');
-
-      // 1) Cargar proveedores
-      fetch('/api/providers')
-        .then(res => res.json())
-        .then(list => {
-          list.forEach(p => provSel.add(new Option(p, p)));
-        });
-
-      // 2) Al cambiar proveedor, habilitar país y cargar países
-      provSel.addEventListener('change', function() {
-        countrySel.innerHTML = '<option value="">— Elegir —</option>';
-        const prov = this.value;
-        if (!prov) {
-          countrySel.disabled = true;
-          calendar.removeAllEvents();
-          icsBtn.style.display = 'none';
-          return;
+def api_events(provider: str, country: str, user: str = Depends(_require_user)):
+    return JSONResponse([
+        {
+          "title": f"{ev['marca']} – PEDIDO",
+          "start": ev["fecha_iso"],
+          "allDay": True,
+          "backgroundColor": "#f58220",
+          "borderColor": "#f58220",
         }
-        countrySel.disabled = false;
-        fetch(`/api/countries?provider=${encodeURIComponent(prov)}`)
-          .then(res => res.json())
-          .then(list => list.forEach(c => countrySel.add(new Option(c, c))));
-      });
-
-      // 3) Al cambiar país, cargar eventos y mostrar ICS
-      countrySel.addEventListener('change', function() {
-        const prov = provSel.value;
-        const country = this.value;
-        calendar.removeAllEvents();
-        icsBtn.style.display = 'none';
-        if (!prov || !country) return;
-
-        // JSON events
-        fetch(`/api/events?provider=${encodeURIComponent(prov)}&country=${encodeURIComponent(country)}`)
-          .then(res => res.json())
-          .then(events => {
-            calendar.addEventSource(events);
-          });
-
-        // Link a ICS (implementar ruta /api/ics si la tienes)
-        icsBtn.href = `/api/ics?provider=${encodeURIComponent(prov)}&country=${encodeURIComponent(country)}`;
-        icsBtn.style.display = 'inline-block';
-      });
-    });
-  </script>
-</body>
-</html>
-```
+        for ev in load_events()
+        if ev["proveedor"] == provider and ev["pais"] == country
+    ])
 
 

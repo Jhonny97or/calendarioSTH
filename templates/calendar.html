@@ -2,53 +2,44 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <title>Calendario de Pedidos</title>
-  <link href="/static/fullcalendar.min.css" rel="stylesheet">
-  <script src="/static/fullcalendar.min.js"></script>
+  <title>Saint Honoré · Calendario</title>
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
+  <link href="/static/style.css" rel="stylesheet">
 </head>
 <body>
   <header>
-    <h1>Pedidos por País</h1>
-    <div><strong>{{ user }}</strong> · <a href="/logout">Salir</a></div>
+    <div class="logo-wrap">
+      <img src="/static/logo.png" alt="Saint Honoré">
+      <span>Demand&nbsp;Planning</span>
+    </div>
+    <div>
+      <strong>{{ user }}</strong> · <a href="/logout">Salir</a>
+    </div>
   </header>
 
   <section class="filters">
-    <label>País:
-      <select id="country-select">
-        <option value="">— Elegir país —</option>
+    <label>Proveedor:
+      <select id="provider-select">
+        <option value="">— Elegir —</option>
       </select>
     </label>
+
+    <label>País:
+      <select id="country-select">
+        <option value="">— Elegir —</option>
+      </select>
+    </label>
+
+    <!-- ▶ NUEVO botón / enlace -->
+    <a id="btn-ics" class="btn" href="#" download style="display:none">
+      Descargar&nbsp;ICS
+    </a>
   </section>
 
   <div id="calendar"></div>
 
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      const calendarEl = document.getElementById('calendar');
-      const calendar = new FullCalendar.Calendar(calendarEl, { initialView: 'dayGridMonth' });
-      calendar.render();
-
-      // Cargar países
-      fetch('/api/countries')
-        .then(res => res.json())
-        .then(list => {
-          const sel = document.getElementById('country-select');
-          list.forEach(c => sel.add(new Option(c, c)));
-        });
-
-      // Al cambiar, cargar eventos
-      document.getElementById('country-select').addEventListener('change', function() {
-        const country = this.value;
-        if (!country) return;
-        fetch(`/api/events?country=${encodeURIComponent(country)}`)
-          .then(res => res.json())
-          .then(events => {
-            calendar.removeAllEvents();
-            calendar.addEventSource(events);
-          });
-      });
-    });
-  </script>
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+  <script src="/static/script.js"></script>
 </body>
 </html>
 

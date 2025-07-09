@@ -12,9 +12,7 @@
       <img src="/static/logo.png" alt="Saint Honore">
       <span>Demand Planning</span>
     </div>
-    <div>
-      <strong>{{ user }}</strong> · <a href="/logout">Salir</a>
-    </div>
+    <div><strong>{{ user }}</strong> · <a href="/logout">Salir</a></div>
   </header>
 
   <section class="filters">
@@ -23,33 +21,66 @@
         <option value="">— Elegir país —</option>
       </select>
     </label>
+
+    <button id="btn-ics" style="display:none;">Descargar ICS</button>
+
+    <form id="email-form" style="display:none;">
+      <input type="email" name="to" placeholder="Correo destinatario" required>
+      <button type="submit">Enviar por email</button>
+    </form>
   </section>
 
   <div id="calendar"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      const countrySelect = document.getElementById('country-select');
-      const calendarEl    = document.getElementById('calendar');
-      const calendar      = new FullCalendar.Calendar(calendarEl, { initialView: 'dayGridMonth' });
-      calendar.render();
+  document.addEventListener('DOMContentLoaded', () => {
+    const countrySelect = document.getElementById('country-select');
+    const btnIcs = document.getElementById('btn-ics');
+    const emailForm = document.getElementById('email-form');
+    const calendarEl = document.getElementById('calendar');
+    const calendar = new FullCalendar.Calendar(calendarEl,{ initialView:'dayGridMonth' });
+    calendar.render();
 
-      // Carga países
-      fetch('/api/countries')
-        .then(res => res.json())
-        .then(list => list.forEach(c => countrySelect.add(new Option(c, c))));
+    let currentCountry = '';
 
-      // Al cambiar país, carga eventos
-      countrySelect.addEventListener('change', function() {
-        const country = this.value;
-        calendar.removeAllEvents();
-        if (!country) return;
-        fetch(`/api/events?country=${encodeURIComponent(country)}`)
-          .then(res => res.json())
-          .then(events => calendar.addEventSource(events));
-      });
+    // 1) Poblar países
+    fetch('/api/countries').then(r=>r.json()).then(list=>{
+      list.forEach(c=> countrySelect.add(new Option(c,c)));
     });
+
+    // 2) Al cambiar país
+    countrySelect.addEventListener('change',()=>{
+      const c = countrySelect.value;
+      currentCountry = c;
+      calendar.removeAllEvents();
+      btnIcs.style.display = 'none';
+      emailForm.style.display = 'none';
+      if(!c) return;
+      // cargar eventos
+      fetch(`/api/events?country=${encodeURIComponent(c)}`)
+        .then(r=>r.json())
+        .then(events=> calendar.addEventSource(events));
+      // mostrar botones
+      btnIcs.style.display = 'inline-block';
+      emailForm.style.display = 'inline-block';
+    });
+
+    // 3) Descargar ICS
+    btnIcs.addEventListener('click', ()=>{
+      window.location = `/api/ics?country=${encodeURIComponent(currentCountry)}`;
+    });
+
+    // 4) Enviar email
+    emailForm.addEventListener('submit', e=>{
+      e.preventDefault();
+      const form = new FormData(emailForm);
+      form.append('country', currentCountry);
+      fetch('/api/email', { method:'POST', body: form })
+        .then(r=> r.json())
+        .then(j=> alert(j.detail));
+    });
+  });
   </script>
 </body>
 </html>

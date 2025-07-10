@@ -1,14 +1,15 @@
 import os, io
 from pathlib import Path
-from fastapi import FastAPI, Request, Form, Depends, HTTPException, BackgroundTasks
+from fastapi import FastAPI, Request, Depends, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from itsdangerous import Signer, BadSignature
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from functools import lru_cache
+from icalendar import Calendar, Event, Alarm
 
-#  ───────────  Rutas base  ───────────
+# ─────────── Rutas base ───────────
 REPO_ROOT     = Path(__file__).resolve().parent.parent.parent
 STATIC_DIR    = REPO_ROOT / "static"
 TEMPLATES_DIR = REPO_ROOT / "templates"
@@ -18,12 +19,12 @@ app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 signer = Signer(os.environ.get("SESSION_SECRET", "dev-secret"))
 
-#  ───────  Credenciales demo  ───────
-CREDENTIALS = {f"brand{i}": f"brand{i}" for i in range(1, 11)}
+# ───── Credenciales demo ─────
+CREDENTIALS = {"brand1":"brand1"}  # ajusta según necesites
 
-#  ──── Datos de ejemplo ────
+# ──── Datos de ejemplo ────
 RAW_EVENTS = [
-    # … tu lista completa de RAW_EVENTS tal cual la tienes …
+    # … tu lista completa de RAW_EVENTS …
 ]
 
 SPANISH_MONTHS = {
@@ -38,9 +39,9 @@ def parse_spanish_date(s: str) -> datetime:
 @lru_cache(maxsize=1)
 def load_events():
     return [
-      {"proveedor":p, "marca":m, "pais":c,
-       "fecha": parse_spanish_date(f)}
-      for p,m,c,f in RAW_EVENTS if f
+        {"marca":m, "pais":c, "fecha": parse_spanish_date(f)}
+        for _,m,c,f in RAW_EVENTS
+        if f
     ]
 
 def _get_user(req: Request):
@@ -54,7 +55,7 @@ def _require_user(req: Request):
         raise HTTPException(303, headers={"Location":"/login"})
     return _get_user(req)
 
-# ─────── Login / Logout ───────
+# ───── Login / Logout ─────
 @app.get("/login", response_class=HTMLResponse)
 def login_get(req: Request):
     if _get_user(req): return RedirectResponse("/",303)
@@ -62,7 +63,7 @@ def login_get(req: Request):
 
 @app.post("/login", response_class=HTMLResponse)
 def login_post(req: Request, username: str = Form(...), password: str = Form(...)):
-    if CREDENTIALS.get(username)!=password:
+    if CREDENTIALS.get(username) != password:
         return templates.TemplateResponse("login.html",{"request":req,"error":"Credenciales incorrectas"})
     resp = RedirectResponse("/",303)
     resp.set_cookie("session", signer.sign(username.encode()).decode(),
@@ -75,12 +76,12 @@ def logout():
     r.delete_cookie("session",path="/")
     return r
 
-# ─────────── Home ───────────
+# ───────── Home ─────────
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request, user: str = Depends(_require_user)):
     return templates.TemplateResponse("calendar.html", {"request":request,"user":user})
 
-# ─────────── API JSON ───────────
+# ───────── API JSON ─────────
 @app.get("/api/countries")
 def api_countries(user: str = Depends(_require_user)):
     return JSONResponse(sorted({e["pais"] for e in load_events()}))
@@ -98,14 +99,13 @@ def api_events(country: str, user: str = Depends(_require_user)):
         for e in load_events() if e["pais"] == country
     ])
 
-# ─────────── Generar ICS ───────────
-from icalendar import Calendar, Event, Alarm
-
+# ───────── Generar ICS ─────────
 @app.get("/api/ics")
 def api_ics(country: str, user: str = Depends(_require_user)):
     cal = Calendar()
     cal.add('prodid', '-//Saint Honore//es')
     cal.add('version', '2.0')
+
     for e in load_events():
         if e["pais"] != country: continue
         ev = Event()
@@ -122,49 +122,7 @@ def api_ics(country: str, user: str = Depends(_require_user)):
         cal.add_component(ev)
 
     buf = io.BytesIO(cal.to_ical())
-    return StreamingResponse(buf, media_type='text/calendar',
-                             headers={'Content-Disposition':f'attachment; filename="pedidos_{country}.ics"'})
-
-# ─────────── Enviar por correo ───────────
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.mime.application import MIMEApplication
-
-@app.post("/api/email")
-def api_email(country: str = Form(...),
-              to: str = Form(...),
-              background_tasks: BackgroundTasks,
-              user: str = Depends(_require_user)):
-    # Generamos el ICS en memoria
-    cal = Calendar()
-    cal.add('prodid', '-//Saint Honore//es')
-    cal.add('version', '2.0')
-    for e in load_events():
-        if e["pais"] != country: continue
-        ev = Event()
-        ev.add('summary', f"{e['marca']} – PEDIDO")
-        ev.add('dtstart', e["fecha"])
-        ev.add('dtend', e["fecha"] + timedelta(hours=1))
-        ev.add('dtstamp', datetime.utcnow())
-        cal.add_component(ev)
-    ics_bytes = cal.to_ical()
-
-    def send():
-        msg = MIMEMultipart()
-        msg['Subject'] = f'Calendario de Pedidos {country}'
-        msg['From'] = os.environ['SMTP_FROM']
-        msg['To'] = to
-        msg.attach(MIMEText('Adjunto encontrarás el calendario de pedidos.', 'plain'))
-        part = MIMEApplication(ics_bytes, _subtype='ics')
-        part.add_header('Content-Disposition', 'attachment', filename=f'pedidos_{country}.ics')
-        msg.attach(part)
-        with smtplib.SMTP(os.environ['SMTP_HOST'], int(os.environ['SMTP_PORT'])) as smtp:
-            smtp.starttls()
-            smtp.login(os.environ['SMTP_USER'], os.environ['SMTP_PASS'])
-            smtp.send_message(msg)
-
-    background_tasks.add_task(send)
-    return JSONResponse({'detail':'Correo enviado correctamente'})
-
-
+    headers = {
+        'Content-Disposition': f'attachment; filename="pedidos_{country}.ics"'
+    }
+    return StreamingResponse(buf, media_type='text/calendar', headers=headers)

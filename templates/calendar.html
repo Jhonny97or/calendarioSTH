@@ -2,15 +2,15 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <title>Saint Honore - Calendario</title>
+  <title>Saint Honoré – Pedidos</title>   <!-- ← Título pestaña -->
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
   <link href="/static/style.css" rel="stylesheet">
 </head>
 <body>
   <header>
     <div class="logo-wrap">
-      <img src="/static/logo.png" alt="Saint Honore">
-      <span>Demand Planning</span>
+      <img src="/static/logo.png" alt="Saint Honoré">
+      <span>SAINT HONORÉ · <strong>PEDIDOS</strong></span>   <!-- ← Texto cabecera -->
     </div>
     <div><strong>{{ user }}</strong> · <a href="/logout">Salir</a></div>
   </header>
@@ -37,12 +37,12 @@
 
       let currentCountry = '';
 
-      // Cargar países
+      /* ───── Cargar países ───── */
       fetch('/api/countries')
         .then(r => r.json())
         .then(list => list.forEach(c => countrySelect.add(new Option(c, c))));
 
-      // Al cambiar país
+      /* ───── Al cambiar país ───── */
       countrySelect.addEventListener('change', () => {
         const c = countrySelect.value;
         currentCountry = c;
@@ -55,7 +55,7 @@
         btnIcs.style.display = 'inline-block';
       });
 
-      // Descargar ICS
+      /* ───── Descargar ICS ───── */
       btnIcs.addEventListener('click', () => {
         window.location = `/api/ics?country=${encodeURIComponent(currentCountry)}`;
       });
@@ -63,4 +63,5 @@
   </script>
 </body>
 </html>
+
 

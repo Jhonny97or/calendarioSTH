@@ -28,7 +28,7 @@ RAW_EVENTS = [
     ("ProveedorNuevo", "Givenchy",       "CHILE LUX",  "02-sep-25"),
     ("ProveedorNuevo", "Kenzo",          "CHILE LUX",  "02-sep-25"),
     ("ProveedorNuevo", "Interparfums",   "CHILE LUX",  "10-sep-25"),
-    ("ProveedorNuevo", "COTY MASSTIGE",  "COSTA RICA", "08-sep-25"),
+    ("ProveedorNuevo", "COTY MASSTIGE",  "PANAMA",     "08-sep-25"),  # corregido
     ("ProveedorNuevo", "CHANEL",         "PANAMA",     "05-sep-25"),
     ("ProveedorNuevo", "CHANEL",         "COLOMBIA",   "05-sep-25"),
     ("ProveedorNuevo", "CHANEL",         "COSTA RICA", "05-sep-25"),

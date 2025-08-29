@@ -41,6 +41,15 @@ RAW_EVENTS = [
     ("ProveedorNuevo", "FENTY",          "PANAMA",     "05-sep-25"),
     ("ProveedorNuevo", "FENTY",          "COSTA RICA", "05-sep-25"),
     ("ProveedorNuevo", "FENTY",          "PERU",       "05-sep-25"),
+    ("ProveedorNuevo", "VICTORIA SECRET",             "PANAMA",   "29-sep-25"),
+    ("ProveedorNuevo", "Bath & Body Works",           "PANAMA",   "29-sep-25"),
+    ("ProveedorNuevo", "VICTORIA SECRET",             "COLOMBIA", "29-sep-25"),
+    ("ProveedorNuevo", "VICTORIA SECRET FLOORSET",    "COLOMBIA", "02-sep-25"),
+    ("ProveedorNuevo", "VICTORIA SECRET FLOORSET",    "PANAMA",   "02-sep-25"),
+    ("ProveedorNuevo", "DIOR FEDURO",                 "PANAMA",   "03-sep-25"),
+    ("ProveedorNuevo", "ESTEE LAUDER",                "PANAMA",   "05-sep-25"),
+    ("ProveedorNuevo", "ACTIUM",                      "PANAMA",   "05-sep-25"),
+    ("ProveedorNuevo", "BELUXE",                      "PANAMA",   "12-sep-25"),
 ]
 
 

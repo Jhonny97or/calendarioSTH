@@ -5,6 +5,10 @@
   <title>Saint Honoré – Pedidos</title>
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
   <link href="/static/style.css" rel="stylesheet">
+  <style>
+    /* opcional: evita que el título con país se corte en pantallas pequeñas */
+    .fc .fc-toolbar-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  </style>
 </head>
 <body>
   <header>
@@ -32,10 +36,31 @@
       const countrySelect = document.getElementById('country-select');
       const btnIcs        = document.getElementById('btn-ics');
       const calendarEl    = document.getElementById('calendar');
-      const calendar      = new FullCalendar.Calendar(calendarEl, { initialView: 'dayGridMonth' });
-      calendar.render();
 
       let currentCountry = '';
+
+      /** Actualiza el texto del título: "September 2025 – PANAMA" */
+      function updateCalendarTitle() {
+        const titleEl = calendarEl.querySelector('.fc-toolbar-title');
+        if (!titleEl) return;
+        const baseTitle = calendar.view ? calendar.view.title : titleEl.textContent;
+        titleEl.textContent = currentCountry ? `${baseTitle} – ${currentCountry}` : baseTitle;
+        // (opcional) renombrar botón ICS con el país
+        btnIcs.textContent = currentCountry ? `Descargar ICS – ${currentCountry}` : 'Descargar ICS';
+      }
+
+      const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        headerToolbar: {
+          left: 'today prev,next',
+          center: 'title',
+          right: ''
+        },
+        datesSet: updateCalendarTitle, // se dispara al navegar entre meses
+      });
+
+      calendar.render();
+      updateCalendarTitle(); // asegura título correcto al cargar
 
       /* ───── Cargar países ───── */
       fetch('/api/countries')
@@ -47,21 +72,30 @@
         const c = countrySelect.value;
         currentCountry = c;
         calendar.removeAllEvents();
-        btnIcs.style.display = 'none';
-        if (!c) return;
+        btnIcs.style.display = c ? 'inline-block' : 'none';
+
+        if (!c) {
+          updateCalendarTitle(); // limpia el sufijo si se des-selecciona
+          return;
+        }
+
         fetch(`/api/events?country=${encodeURIComponent(c)}`)
           .then(r => r.json())
-          .then(events => calendar.addEventSource(events));
-        btnIcs.style.display = 'inline-block';
+          .then(events => {
+            calendar.addEventSource(events);
+            updateCalendarTitle(); // añade "– {PAÍS}" al título
+          });
       });
 
       /* ───── Descargar ICS ───── */
       btnIcs.addEventListener('click', () => {
+        if (!currentCountry) return;
         window.location = `/api/ics?country=${encodeURIComponent(currentCountry)}`;
       });
     });
   </script>
 </body>
 </html>
+
 
 

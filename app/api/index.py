@@ -22,51 +22,7 @@ signer = Signer(os.environ.get("SESSION_SECRET", "dev-secret"))
 # ───── Credenciales demo ─────
 CREDENTIALS = {"brand1": "brand1"}  # ajusta según necesites
 
-RAW_EVENTS = [
-    # ====== OCTUBRE 2025 ======
-    ("ProveedorNuevo", "DIOR", "CHILE LUX", "2025-10-06"),
-    ("ProveedorNuevo", "Givenchy", "CHILE LUX", "2025-10-02"),
-    ("ProveedorNuevo", "Kenzo", "CHILE LUX", "2025-10-02"),
-    ("ProveedorNuevo", "Givenchy", "COSTA RICA", "2025-10-06"),
-    ("ProveedorNuevo", "Kenzo", "COSTA RICA", "2025-10-06"),
-    ("ProveedorNuevo", "Acqua di Parma", "CHILE LUX", "2025-10-06"),
-    ("ProveedorNuevo", "Interparfums", "CHILE LUX", "2025-10-10"),
-    ("ProveedorNuevo", "Sisley", "CHILE LUX", "2025-10-13"),
-
-    ("ProveedorNuevo", "VICTORIA SECRET", "PANAMA", "2025-10-24"),
-    ("ProveedorNuevo", "Bath & Body Works", "PANAMA", "2025-10-24"),
-    ("ProveedorNuevo", "COTY MASSTIGE", "PANAMA", "2025-10-07"),
-    ("ProveedorNuevo", "MAC", "PANAMA", "2025-10-15"),
-    ("ProveedorNuevo", "CHANEL", "PANAMA", "2025-10-10"),
-    ("ProveedorNuevo", "RISE", "PANAMA", "2025-10-02"),
-
-    ("ProveedorNuevo", "CHANEL", "COLOMBIA", "2025-10-06"),
-    ("ProveedorNuevo", "DIOR", "COLOMBIA", "2025-10-06"),
-    ("ProveedorNuevo", "VICTORIA SECRET", "COLOMBIA", "2025-10-24"),
-    ("ProveedorNuevo", "MAC", "COLOMBIA", "2025-10-15"),
-    ("ProveedorNuevo", "SWAROVSKI", "COLOMBIA", "2025-10-02"),
-    ("ProveedorNuevo", "FENTY", "COLOMBIA", "2025-10-06"),
-    ("ProveedorNuevo", "LOREAL", "COLOMBIA", "2025-10-06"),
-
-    ("ProveedorNuevo", "CHANEL", "COSTA RICA", "2025-10-10"),
-    ("ProveedorNuevo", "DIOR", "COSTA RICA", "2025-10-31"),
-    ("ProveedorNuevo", "CLARINS", "COSTA RICA", "2025-10-15"),
-    ("ProveedorNuevo", "SKILL", "COSTA RICA", "2025-10-31"),
-    ("ProveedorNuevo", "JEANNE ARTHES", "COSTA RICA", "2025-10-31"),
-
-    ("ProveedorNuevo", "SWAROVSKI", "PERU", "2025-10-02"),
-
-    # ====== DICIEMBRE 2025 ======
-    ("ProveedorNuevo", "VICTORIA SECRET", "PANAMA", "2025-12-15"),
-    ("ProveedorNuevo", "Bath & Body Works", "PANAMA", "2025-12-15"),
-    ("ProveedorNuevo", "MAC", "PANAMA", "2025-12-15"),
-
-    ("ProveedorNuevo", "VICTORIA SECRET", "COLOMBIA", "2025-12-15"),
-    ("ProveedorNuevo", "JEANNE ARTHES", "COLOMBIA", "2025-12-15"),
-
-    ("ProveedorNuevo", "LFB", "COSTA RICA", "2025-12-12"),
-    ("ProveedorNuevo", "PUPA MILANO", "COSTA RICA", "2025-12-19"),
-]
+RAW_EVENTS = [ ("ProveedorNuevo", "DIOR", "CHILE LUX", "06-oct-25"), ("ProveedorNuevo", "Givenchy", "CHILE LUX", "02-oct-25"), ("ProveedorNuevo", "Kenzo", "CHILE LUX", "02-oct-25"), ("ProveedorNuevo", "Givenchy", "COSTA RICA", "06-oct-25"), ("ProveedorNuevo", "Kenzo", "COSTA RICA", "06-oct-25"), ("ProveedorNuevo", "Acqua di Parma", "CHILE LUX", "06-oct-25"), ("ProveedorNuevo", "Interparfums", "CHILE LUX", "10-oct-25"), ("ProveedorNuevo", "Sisley", "CHILE LUX", "13-oct-25"), ("ProveedorNuevo", "VICTORIA SECRET", "PANAMÁ", "24-oct-25"), ("ProveedorNuevo", "Bath & Body Works","PANAMÁ", "24-oct-25"), ("ProveedorNuevo", "COTY MASSTIGE", "PANAMÁ", "07-oct-25"), ("ProveedorNuevo", "MAC", "PANAMÁ", "15-oct-25"), ("ProveedorNuevo", "CHANEL", "PANAMÁ", "10-oct-25"), ("ProveedorNuevo", "CHANEL", "COLOMBIA", "06-oct-25"), ("ProveedorNuevo", "CHANEL", "COSTA RICA", "10-oct-25"), ("ProveedorNuevo", "DIOR", "COLOMBIA", "06-oct-25"), ("ProveedorNuevo", "VICTORIA SECRET", "COLOMBIA", "24-oct-25"), ("ProveedorNuevo", "MAC", "COLOMBIA", "15-oct-25"), ("ProveedorNuevo", "SWAROVSKI", "COLOMBIA", "02-oct-25"), ("ProveedorNuevo", "DIOR", "COSTA RICA", "31-oct-25"), ("ProveedorNuevo", "CLARINS", "COSTA RICA", "15-oct-25"), ("ProveedorNuevo", "SKILL", "COSTA RICA", "31-oct-25"), ("ProveedorNuevo", "JEANNE ARTHES", "COSTA RICA", "31-oct-25"), ("ProveedorNuevo", "RISE", "PANAMÁ", "02-oct-25"), ("ProveedorNuevo", "SWAROVSKI", "PERÚ", "02-oct-25"), ("ProveedorNuevo", "FENTY", "COLOMBIA", "06-oct-25"), ("ProveedorNuevo", "LOREAL", "COLOMBIA", "06-oct-25"), ]
 
 
 SPANISH_MONTHS = {

@@ -23,18 +23,7 @@ signer = Signer(os.environ.get("SESSION_SECRET", "dev-secret"))
 CREDENTIALS = {"brand1": "brand1"}  # ajusta según necesites
 
 # ──── Datos de ejemplo ────
-RAW_EVENTS = [
-    ("ProveedorNuevo", "VICTORIA SECRET", "PANAMÁ",     "15-dec-25"),
-    ("ProveedorNuevo", "Bath & Body Works","PANAMÁ",    "15-dec-25"),
-    ("ProveedorNuevo", "MAC",             "PANAMÁ",     "15-dec-25"),
-    ("ProveedorNuevo", "VICTORIA SECRET", "COLOMBIA",   "15-dec-25"),
-    ("ProveedorNuevo", "JEANNE ARTHES",   "COLOMBIA",   "15-dec-25"),
-    ("ProveedorNuevo", "LFB",             "COSTA RICA", "12-dec-25"),
-    ("ProveedorNuevo", "PUPA MILANO",     "COSTA RICA", "19-dec-25"),
-]
-
-
-
+RAW_EVENTS = [ ("ProveedorNuevo", "DIOR", "CHILE LUX", "06-oct-25"), ("ProveedorNuevo", "Givenchy", "CHILE LUX", "02-oct-25"), ("ProveedorNuevo", "Kenzo", "CHILE LUX", "02-oct-25"), ("ProveedorNuevo", "Givenchy", "COSTA RICA", "06-oct-25"), ("ProveedorNuevo", "Kenzo", "COSTA RICA", "06-oct-25"), ("ProveedorNuevo", "Acqua di Parma", "CHILE LUX", "06-oct-25"), ("ProveedorNuevo", "Interparfums", "CHILE LUX", "10-oct-25"), ("ProveedorNuevo", "Sisley", "CHILE LUX", "13-oct-25"), ("ProveedorNuevo", "VICTORIA SECRET", "PANAMÁ", "24-oct-25"), ("ProveedorNuevo", "Bath & Body Works","PANAMÁ", "24-oct-25"), ("ProveedorNuevo", "COTY MASSTIGE", "PANAMÁ", "07-oct-25"), ("ProveedorNuevo", "MAC", "PANAMÁ", "15-oct-25"), ("ProveedorNuevo", "CHANEL", "PANAMÁ", "10-oct-25"), ("ProveedorNuevo", "CHANEL", "COLOMBIA", "06-oct-25"), ("ProveedorNuevo", "CHANEL", "COSTA RICA", "10-oct-25"), ("ProveedorNuevo", "DIOR", "COLOMBIA", "06-oct-25"), ("ProveedorNuevo", "VICTORIA SECRET", "COLOMBIA", "24-oct-25"), ("ProveedorNuevo", "MAC", "COLOMBIA", "15-oct-25"), ("ProveedorNuevo", "SWAROVSKI", "COLOMBIA", "02-oct-25"), ("ProveedorNuevo", "DIOR", "COSTA RICA", "31-oct-25"), ("ProveedorNuevo", "CLARINS", "COSTA RICA", "15-oct-25"), ("ProveedorNuevo", "SKILL", "COSTA RICA", "31-oct-25"), ("ProveedorNuevo", "JEANNE ARTHES", "COSTA RICA", "31-oct-25"), ("ProveedorNuevo", "RISE", "PANAMÁ", "02-oct-25"), ("ProveedorNuevo", "SWAROVSKI", "PERÚ", "02-oct-25"), ("ProveedorNuevo", "FENTY", "COLOMBIA", "06-oct-25"), ("ProveedorNuevo", "LOREAL", "COLOMBIA", "06-oct-25"), ]
 
 SPANISH_MONTHS = {
     "ene":1,"feb":2,"mar":3,"abr":4,"may":5,"jun":6,

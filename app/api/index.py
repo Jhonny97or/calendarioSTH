@@ -33,11 +33,12 @@ RAW_EVENTS = [
     ("ProveedorNuevo", "Interparfums", "CHILE LUX", "2025-10-10"),
     ("ProveedorNuevo", "Sisley", "CHILE LUX", "2025-10-13"),
 
-    ("ProveedorNuevo", "VICTORIA SECRET", "PANAMÁ", "2025-10-24"),
-    ("ProveedorNuevo", "Bath & Body Works", "PANAMÁ", "2025-10-24"),
-    ("ProveedorNuevo", "COTY MASSTIGE", "PANAMÁ", "2025-10-07"),
-    ("ProveedorNuevo", "MAC", "PANAMÁ", "2025-10-15"),
-    ("ProveedorNuevo", "CHANEL", "PANAMÁ", "2025-10-10"),
+    ("ProveedorNuevo", "VICTORIA SECRET", "PANAMA", "2025-10-24"),
+    ("ProveedorNuevo", "Bath & Body Works", "PANAMA", "2025-10-24"),
+    ("ProveedorNuevo", "COTY MASSTIGE", "PANAMA", "2025-10-07"),
+    ("ProveedorNuevo", "MAC", "PANAMA", "2025-10-15"),
+    ("ProveedorNuevo", "CHANEL", "PANAMA", "2025-10-10"),
+    ("ProveedorNuevo", "RISE", "PANAMA", "2025-10-02"),
 
     ("ProveedorNuevo", "CHANEL", "COLOMBIA", "2025-10-06"),
     ("ProveedorNuevo", "DIOR", "COLOMBIA", "2025-10-06"),
@@ -53,13 +54,12 @@ RAW_EVENTS = [
     ("ProveedorNuevo", "SKILL", "COSTA RICA", "2025-10-31"),
     ("ProveedorNuevo", "JEANNE ARTHES", "COSTA RICA", "2025-10-31"),
 
-    ("ProveedorNuevo", "RISE", "PANAMÁ", "2025-10-02"),
-    ("ProveedorNuevo", "SWAROVSKI", "PERÚ", "2025-10-02"),
+    ("ProveedorNuevo", "SWAROVSKI", "PERU", "2025-10-02"),
 
-    # ====== DICIEMBRE 2025 (YA CORREGIDO) ======
-    ("ProveedorNuevo", "VICTORIA SECRET", "PANAMÁ", "2025-12-15"),
-    ("ProveedorNuevo", "Bath & Body Works", "PANAMÁ", "2025-12-15"),
-    ("ProveedorNuevo", "MAC", "PANAMÁ", "2025-12-15"),
+    # ====== DICIEMBRE 2025 ======
+    ("ProveedorNuevo", "VICTORIA SECRET", "PANAMA", "2025-12-15"),
+    ("ProveedorNuevo", "Bath & Body Works", "PANAMA", "2025-12-15"),
+    ("ProveedorNuevo", "MAC", "PANAMA", "2025-12-15"),
 
     ("ProveedorNuevo", "VICTORIA SECRET", "COLOMBIA", "2025-12-15"),
     ("ProveedorNuevo", "JEANNE ARTHES", "COLOMBIA", "2025-12-15"),
@@ -67,7 +67,6 @@ RAW_EVENTS = [
     ("ProveedorNuevo", "LFB", "COSTA RICA", "2025-12-12"),
     ("ProveedorNuevo", "PUPA MILANO", "COSTA RICA", "2025-12-19"),
 ]
-
 
 
 SPANISH_MONTHS = {

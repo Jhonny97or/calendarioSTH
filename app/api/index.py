@@ -53,13 +53,15 @@ RAW_EVENTS = [
     ("ProveedorNuevo", "LOREAL", "COLOMBIA", "06-oct-25"),
 
     # ====== DICIEMBRE 2025 ======
-    ("ProveedorNuevo", "VICTORIA SECRET", "PANAMÁ", "15-dec-25"),
-    ("ProveedorNuevo", "Bath & Body Works", "PANAMÁ", "15-dec-25"),
-    ("ProveedorNuevo", "MAC", "PANAMÁ", "15-dec-25"),
-    ("ProveedorNuevo", "VICTORIA SECRET", "COLOMBIA", "15-dec-25"),
-    ("ProveedorNuevo", "JEANNE ARTHES", "COLOMBIA", "15-dec-25"),
-    ("ProveedorNuevo", "LFB", "COSTA RICA", "12-dec-25"),
-    ("ProveedorNuevo", "PUPA MILANO", "COSTA RICA", "19-dec-25"),
+   # ====== DICIEMBRE 2025 (FORMATO CORRECTO) ======
+("ProveedorNuevo", "VICTORIA SECRET", "PANAMÁ", "2025-12-15"),
+("ProveedorNuevo", "Bath & Body Works", "PANAMÁ", "2025-12-15"),
+("ProveedorNuevo", "MAC", "PANAMÁ", "2025-12-15"),
+("ProveedorNuevo", "VICTORIA SECRET", "COLOMBIA", "2025-12-15"),
+("ProveedorNuevo", "JEANNE ARTHES", "COLOMBIA", "2025-12-15"),
+("ProveedorNuevo", "LFB", "COSTA RICA", "2025-12-12"),
+("ProveedorNuevo", "PUPA MILANO", "COSTA RICA", "2025-12-19"),
+
 ]
 
 

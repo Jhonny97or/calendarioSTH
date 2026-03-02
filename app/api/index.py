@@ -34,7 +34,7 @@ RAW_EVENTS = [
     ("ProveedorNuevo", "Sisley", "CHILE LUX", "13-oct-25"),
 
     ("ProveedorNuevo", "VICTORIA SECRET", "PANAMÁ", "24-oct-25"),
-    ("ProveedorNuevo", "Bath & Body Works","PANAMÁ", "24-oct-25"),
+    ("ProveedorNuevo", "Bath & Body Works", "PANAMÁ", "24-oct-25"),
     ("ProveedorNuevo", "COTY MASSTIGE", "PANAMÁ", "07-oct-25"),
     ("ProveedorNuevo", "MAC", "PANAMÁ", "15-oct-25"),
     ("ProveedorNuevo", "CHANEL", "PANAMÁ", "10-oct-25"),
@@ -96,8 +96,47 @@ RAW_EVENTS = [
 
     ("ProveedorNuevo", "Fenty", "CHILE LUX", "13-ene-26"),
 
+    # ====== MARZO 2026 (MISMO FORMATO QUE OCTUBRE) ======
+    ("ProveedorNuevo", "DIOR", "CHILE LUX", "06-mar-26"),
+    ("ProveedorNuevo", "Givenchy", "CHILE LUX", "06-mar-26"),
+    ("ProveedorNuevo", "Kenzo", "CHILE LUX", "06-mar-26"),
+    ("ProveedorNuevo", "Givenchy", "COSTA RICA", "10-mar-26"),
+    ("ProveedorNuevo", "Kenzo", "COSTA RICA", "10-mar-26"),
+    ("ProveedorNuevo", "Interparfums", "CHILE LUX", "16-mar-26"),
+    ("ProveedorNuevo", "Bvlgari", "CHILE LUX", "17-mar-26"),
 
+    ("ProveedorNuevo", "DIOR", "PANAMÁ", "06-mar-26"),
+    ("ProveedorNuevo", "VICTORIA SECRET", "PANAMÁ", "27-mar-26"),
+    ("ProveedorNuevo", "Bath & Body Works", "PANAMÁ", "13-mar-26"),
+    ("ProveedorNuevo", "COTY", "COSTA RICA", "10-mar-26"),
+    ("ProveedorNuevo", "COTY MASSTIGE", "PANAMÁ", "04-mar-26"),
+    ("ProveedorNuevo", "ESSENCE", "PANAMÁ", "09-mar-26"),
+    ("ProveedorNuevo", "ACTIUM", "PANAMÁ", "09-mar-26"),
+    ("ProveedorNuevo", "ESTEE LAUDER", "PANAMÁ", "09-mar-26"),
+    ("ProveedorNuevo", "MAC", "PANAMÁ", "16-mar-26"),
+    ("ProveedorNuevo", "CHANEL", "PANAMÁ", "10-mar-26"),
 
+    ("ProveedorNuevo", "CHANEL", "COLOMBIA", "06-mar-26"),
+    ("ProveedorNuevo", "CHANEL", "COSTA RICA", "10-mar-26"),
+    ("ProveedorNuevo", "DIOR", "COLOMBIA", "06-mar-26"),
+    ("ProveedorNuevo", "VICTORIA SECRET", "COLOMBIA", "27-mar-26"),
+    ("ProveedorNuevo", "MAC", "COLOMBIA", "16-mar-26"),
+    ("ProveedorNuevo", "SWAROVSKI", "COLOMBIA", "10-mar-26"),
+
+    ("ProveedorNuevo", "DIOR", "COSTA RICA", "10-mar-26"),
+    ("ProveedorNuevo", "PAYOT", "COSTA RICA", "09-mar-26"),
+    ("ProveedorNuevo", "LFB", "COSTA RICA", "10-mar-26"),
+    ("ProveedorNuevo", "SKILL", "COSTA RICA", "24-mar-26"),
+
+    ("ProveedorNuevo", "SWAROVSKI", "PERÚ", "09-mar-26"),
+
+    ("ProveedorNuevo", "Fenty", "CHILE LUX", "10-mar-26"),
+    ("ProveedorNuevo", "FENTY", "COLOMBIA", "10-mar-26"),
+    ("ProveedorNuevo", "FENTY", "PANAMÁ", "10-mar-26"),
+    ("ProveedorNuevo", "FENTY", "COSTA RICA", "10-mar-26"),
+    ("ProveedorNuevo", "FENTY", "PERÚ", "10-mar-26"),
+
+    ("ProveedorNuevo", "BELUXE", "PANAMÁ", "09-mar-26"),
 ]
 
 

@@ -169,7 +169,7 @@ RAW_EVENTS = [
 ("ProveedorNuevo", "DIOR", "COLOMBIA", "06-abr-26"),
 ("ProveedorNuevo", "VICTORIA SECRET", "COLOMBIA", "01-abr-26"),
 ("ProveedorNuevo", "JEANNE ARTHES", "COLOMBIA", "14-abr-26"),
-("ProveedorNuevo", "SWAROVSKI", "COLOMBIA", "26-abr-26"),
+("ProveedorNuevo", "SWAROVSKI", "COLOMBIA", "24-abr-26"),
 ("ProveedorNuevo", "FENTY", "COLOMBIA", "02-abr-26"),
 ("ProveedorNuevo", "LOREAL", "COLOMBIA", "08-abr-26"),
 ("ProveedorNuevo", "CLARINS", "COLOMBIA", "06-abr-26"),

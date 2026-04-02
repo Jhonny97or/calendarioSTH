@@ -139,7 +139,7 @@ RAW_EVENTS = [
     ("ProveedorNuevo", "BELUXE", "PANAMÁ", "09-mar-26"),
 
     # ====== ABRIL 2026 (MISMO FORMATO QUE OCTUBRE) ======
-("ProveedorNuevo", "DIOR", "CHILE LUX", "06-abr-26"),
+("ProveedorNuevo", "DIOR", "CHILE LUX", "02-abr-26"),
 ("ProveedorNuevo", "Givenchy", "CHILE LUX", "02-abr-26"),
 ("ProveedorNuevo", "Kenzo", "CHILE LUX", "02-abr-26"),
 ("ProveedorNuevo", "Acqua di Parma", "CHILE LUX", "26-abr-26"),

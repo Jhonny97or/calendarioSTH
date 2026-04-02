@@ -139,6 +139,7 @@ RAW_EVENTS = [
     ("ProveedorNuevo", "BELUXE", "PANAMÁ", "09-mar-26"),
 
     # ====== ABRIL 2026 (MISMO FORMATO QUE OCTUBRE) ======
+# ====== ABRIL 2026 (MISMO FORMATO QUE OCTUBRE) ======
 ("ProveedorNuevo", "DIOR", "CHILE LUX", "02-abr-26"),
 ("ProveedorNuevo", "Givenchy", "CHILE LUX", "02-abr-26"),
 ("ProveedorNuevo", "Kenzo", "CHILE LUX", "02-abr-26"),
@@ -156,11 +157,11 @@ RAW_EVENTS = [
 ("ProveedorNuevo", "CHANEL", "PANAMÁ", "01-abr-26"),
 ("ProveedorNuevo", "FENTY", "PANAMÁ", "07-abr-26"),
 
-("ProveedorNuevo", "COTY", "COSTA RICA", "24-abr-26"),
+("ProveedorNuevo", "COTY", "COSTA RICA", "26-abr-26"),
 ("ProveedorNuevo", "CHANEL", "COSTA RICA", "01-abr-26"),
 ("ProveedorNuevo", "DIOR", "COSTA RICA", "06-abr-26"),
 ("ProveedorNuevo", "CLARINS", "COSTA RICA", "06-abr-26"),
-("ProveedorNuevo", "PAYOT", "COSTA RICA", "24-abr-26"),
+("ProveedorNuevo", "PAYOT", "COSTA RICA", "26-abr-26"),
 ("ProveedorNuevo", "SKILL", "COSTA RICA", "14-abr-26"),
 ("ProveedorNuevo", "JEANNE ARTHES", "COSTA RICA", "14-abr-26"),
 
@@ -168,12 +169,12 @@ RAW_EVENTS = [
 ("ProveedorNuevo", "DIOR", "COLOMBIA", "06-abr-26"),
 ("ProveedorNuevo", "VICTORIA SECRET", "COLOMBIA", "01-abr-26"),
 ("ProveedorNuevo", "JEANNE ARTHES", "COLOMBIA", "14-abr-26"),
-("ProveedorNuevo", "SWAROVSKI", "COLOMBIA", "24-abr-26"),
+("ProveedorNuevo", "SWAROVSKI", "COLOMBIA", "26-abr-26"),
 ("ProveedorNuevo", "FENTY", "COLOMBIA", "02-abr-26"),
 ("ProveedorNuevo", "LOREAL", "COLOMBIA", "08-abr-26"),
 ("ProveedorNuevo", "CLARINS", "COLOMBIA", "06-abr-26"),
 
-("ProveedorNuevo", "SWAROVSKI", "PERÚ", "24-abr-26"),
+("ProveedorNuevo", "SWAROVSKI", "PERÚ", "26-abr-26"),
 ("ProveedorNuevo", "Fenty", "CHILE LUX", "02-abr-26"),
 ("ProveedorNuevo", "FENTY", "PERÚ", "02-abr-26"),
 
